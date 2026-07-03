@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Threshold</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      overflow: hidden;
+      font-family: 'Courier New', Courier, monospace;
+      user-select: none;
+    }
+
+    /* Entire screen is a clickable story surface */
+    .story-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .fade-out {
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+    }
+    /* Background image container */
+    .background-view {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      opacity: 0; /* Starts pitch black */
+      transition: transform 4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease;
+    }
+
+    /* Clean vertical step bobbing */
+    .walking-active {
+      animation: cleanStepBob 0.6s infinite ease-in-out;
+      transform: scale(1.5);
+    }
+
+    @keyframes cleanStepBob {
+      0%, 100% { margin-top: 0px; }
+      50% { margin-top: -12px; }
+    }
+
+    /* 0.3 Second Flash Fade Transition class */
+    .quick-fade {
+      transition: opacity 0.3s ease-in-out !important;
+      opacity: 0 !important;
+    }
+
+    /* First-person POV vignette overlay */
+    .vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, transparent 35%, rgba(0,0,0,0.9) 95%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Typewriter Text Container Layout (Top Middle) */
+    .text-container {
+      position: absolute;
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      text-align: center;
+      width: 85%;
+      max-width: 1200px;
+    }
+
+    .typewriter-text {
+      font-size: 1.8rem;
+      font-weight: bold;
+      display: inline-block;
+      white-space: normal; /* Allows wrapping if strings get long */
+      word-wrap: break-word;
+    }
+
+    /* Visual prompt at the bottom to remind them to click */
+    .click-hint {
+      position: absolute;
+      bottom: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 0.9rem;
+      letter-spacing: 2px;
+      z-index: 10;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="story-wrapper" id="storyWrapper">
+    <div class="vignette"></div>
+    
+    <div class="text-container">
+      <div id="textElement" class="typewriter-text"></div>
+    </div>
+
+    <div id="backgroundView" class="background-view"></div>
+    
+    <div class="click-hint">CLICK ANYWHERE TO CONTINUE</div>
+  </div>
+
+  <script>
+    const backgroundView = document.getElementById('backgroundView');
+    const textElement = document.getElementById('textElement');
+    const storyWrapper = document.getElementById('storyWrapper');
+
+    // Default style setups for text types
+    const styles = {
+      colombina: { color: '#e8bbff', textShadow: '0 0 8px rgba(232, 187, 255, 0.6)' },
+      pusheen: { color: '#ffb7b2', textShadow: '0 0 8px rgba(255, 183, 178, 0.7)' },
+      system: { color: '#ffffff', textShadow: '0 0 5px rgba(255, 255, 255, 0.4)' }
+    };
+
+    // The script state machine array
+    const storyScript = [
+      { text: "Where are we?", style: styles.colombina },
+      { text: "*meow*", style: styles.pusheen },
+      { text: "*it is so dark there is barely any vision to see where we are*", style: styles.colombina },
+      { text: "*hold on magical light power on the way*", style: styles.colombina },
+      { 
+        text: "Much better like this", 
+        style: styles.colombina,
+        action: () => {
+          // Turn on the lights, reveal door-closed.jpg
+          backgroundView.style.backgroundImage = "url('door-closed.jpg')";
+          backgroundView.style.opacity = "1";
+        }
+      },
+      { text: "This door is giving a strange energy.", style: styles.colombina },
+      { 
+        text: "*it is almsot unsettling.. but let's move closer..", 
+        style: styles.colombina,
+        action: () => {
+          // Begin the clean walking up-and-down sequence
+          backgroundView.classList.add('walking-active');
+        }
+      },
+      { text: "*meow meow!*", style: styles.pusheen },
+      { 
+        text: "wait the door is doing something", 
+        style: styles.colombina,
+        isFinalBeforeTransition: true // Flag to handle special transition timing
+      }
+    ];
+
+    let currentStep = 0;
+    let isTransitioning = false;
+
+    // Typewriter engine function
+    let typingTimeout;
+    function typeText(text, style, callback) {
+      clearTimeout(typingTimeout);
+      textElement.textContent = "";
+      
+      // Apply character specific styling rules
+      textElement.style.color = style.color;
+      textElement.style.textShadow = style.textShadow;
+      
+      let i = 0;
+      function run() {
+        if (i < text.length) {
+          textElement.textContent += text.charAt(i);
+          i++;
+          typingTimeout = setTimeout(run, 45); // Typing cadence speed
+        } else if (callback) {
+          callback();
+        }
+      }
+      run();
+    }
+
+    // Progressing through steps via user clicks
+    storyWrapper.addEventListener('click', () => {
+      if (isTransitioning) return; // Prevent clicking spam during animation drops
+
+      if (currentStep < storyScript.length) {
+        const currentLine = storyScript[currentStep];
+        
+        // Execute frame events attached to dialogue steps if they exist
+        if (currentLine.action) {
+          currentLine.action();
+        }
+
+        typeText(currentLine.text, currentLine.style, () => {
+          // If it's the line right before the door pops open
+          if (currentLine.isFinalBeforeTransition) {
+            isTransitioning = true;
+            
+            // Wait 1.5 seconds so the player can read "wait the door is doing something"
+            setTimeout(() => {
+              // 0.3 second quick fade out transition
+              backgroundView.classList.add('quick-fade');
+              
+              setTimeout(() => {
+                // Stop walking animation, swap to door-open.jpg image asset
+                backgroundView.classList.remove('walking-active');
+                backgroundView.classList.remove('quick-fade');
+                backgroundView.style.transform = "scale(1)";
+                backgroundView.style.backgroundImage = "url('door-open.jpg')";
+                
+                // Print aftermath room entry dialog
+                typeText(
+                "wait the door is glowing, it seems to be leading somewhere, let's go through it!",
+                styles.colombina,
+                () => {
+                  // Wait 2 seconds after the final typewriter finishes
+                  setTimeout(() => {
+                    document.body.classList.add("fade-out");
+
+                    // Wait for the fade to complete
+                    setTimeout(() => {
+                      window.location.href = "../4_library/library.html";
+                    }, 1500); // Matches the fade duration
+                  }, 2000);
+                }
+              );
+
+              isTransitioning = false;
+              }, 300); // exact 0.3s fade duration match
+              
+            }, 1500);
+          }
+        });
+
+        currentStep++;
+      }
+    });
+
+    // Start with the initial text display
+    window.addEventListener('DOMContentLoaded', () => {
+      typeText(storyScript[0].text, storyScript[0].style);
+      currentStep = 1;
+    });
+  </script>
+</body>
+</html>

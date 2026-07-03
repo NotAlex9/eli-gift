@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Threshold</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      overflow: hidden;
+      font-family: 'Courier New', Courier, monospace;
+      user-select: none;
+    }
+
+    /* Smoothly fade out the entire screen before transferring */
+    .fade-out-active {
+      transition: opacity 1.5s ease-in-out;
+      opacity: 0;
+      pointer-events: none; /* Prevent further clicks */
+    }
+    /* Entire screen is a clickable story surface */
+    .story-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Background image container */
+    .background-view {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      opacity: 0; /* Starts pitch black */
+      transition: transform 6s cubic-bezier(0.25, 1, 0.5, 1), opacity 1.5s ease-in-out;
+      z-index: 1;
+    }
+
+    /* Smooth zooming and climbing camera path up the castle stairs */
+    .climbing-active {
+      animation: cinematicClimb 8s forwards ease-in-out;
+    }
+
+    @keyframes cinematicClimb {
+      0% {
+        transform: scale(1) translateY(0);
+      }
+      100% {
+        transform: scale(1.35) translateY(-40px);
+      }
+    }
+
+    /* First-person POV vignette overlay */
+    .vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, transparent 35%, rgba(0,0,0,0.95) 95%);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    /* Introduction Text Box (Beautiful transparent container) */
+    .intro-box {
+      position: absolute;
+      z-index: 10;
+      width: 85%;
+      max-width: 650px;
+      padding: 30px;
+      background: rgba(10, 5, 15, 0.75);
+      border: 1px solid rgba(232, 187, 255, 0.2);
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(232, 187, 255, 0.05);
+      text-align: center;
+      transition: opacity 0.8s ease;
+    }
+
+    /* Main Dialogue Display */
+    .typewriter-text {
+      font-size: 1.5rem;
+      font-weight: bold;
+      line-height: 1.6;
+      display: inline-block;
+      white-space: normal;
+      word-wrap: break-word;
+    }
+
+    /* Begin Button Styles */
+    .begin-btn {
+      display: none;
+      margin-top: 25px;
+      padding: 12px 30px;
+      background: transparent;
+      border: 2px solid #e8bbff;
+      color: #e8bbff;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1.1rem;
+      font-weight: bold;
+      letter-spacing: 3px;
+      cursor: pointer;
+      border-radius: 4px;
+      text-shadow: 0 0 5px rgba(232, 187, 255, 0.5);
+      box-shadow: 0 0 10px rgba(232, 187, 255, 0.2);
+      transition: all 0.3s ease;
+      animation: pulse 2s infinite;
+    }
+
+    .begin-btn:hover {
+      background: #e8bbff;
+      color: #000;
+      box-shadow: 0 0 20px rgba(232, 187, 255, 0.6);
+    }
+
+    /* Visual prompt at the bottom to remind them to click */
+    .click-hint {
+      position: absolute;
+      bottom: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.25);
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      z-index: 10;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="story-wrapper" id="storyWrapper">
+    <div class="vignette"></div>
+    
+    <div class="intro-box" id="introBox">
+      <div id="textElement" class="typewriter-text"></div>
+      <br>
+      <button class="begin-btn" id="beginBtn">BEGIN JOURNEY</button>
+    </div>
+    
+    <div id="backgroundView" class="background-view"></div>
+    
+    <div class="click-hint" id="clickHint">CLICK ANYWHERE TO CONTINUE</div>
+  </div>
+
+  <script>
+    const backgroundView = document.getElementById('backgroundView');
+    const textElement = document.getElementById('textElement');
+    const storyWrapper = document.getElementById('storyWrapper');
+    const beginBtn = document.getElementById('beginBtn');
+    const introBox = document.getElementById('introBox');
+    const clickHint = document.getElementById('clickHint');
+
+    // Color theme setups
+    const styles = {
+      colombina: { color: '#e8bbff', textShadow: '0 0 8px rgba(232, 187, 255, 0.6)' },
+      pusheen: { color: '#ffb7b2', textShadow: '0 0 8px rgba(255, 183, 178, 0.7)' },
+      system: { color: '#ffffff', textShadow: '0 0 5px rgba(255, 255, 255, 0.4)' }
+    };
+
+    // The redesigned scene state tracking list
+    const storyScript = [
+      // PHASE 1: Dark Backstory Box Sequence
+      { text: "Columbina has lived for a thousand years, and will live thousands more.", style: styles.colombina, stage: "intro" },
+      { text: "As mortals can’t live as long as she does, she watched everyone close to her grow old and pass on, one after another...", style: styles.colombina, stage: "intro" },
+      { text: "...until she learned to keep new people at a distance, isolating herself far longer than she could remember.", style: styles.colombina, stage: "intro" },
+      { text: "But it hurt her less that way than attachment with a person that she knows will eventually make her experience grief again.", style: styles.colombina, stage: "intro" },
+      { text: "Then one person broke through her shell. He was the first one in centuries who made her feel real joy again, pulling her out of the quiet isolation she'd built.", style: styles.colombina, stage: "intro" },
+      { text: "But an emergency called her away. A village had gotten overrun by monsters and dark powers no one else could stop.", style: styles.colombina, stage: "intro" },
+      { text: "She said her goodbyes and left to protect people who needed her, not knowing it would take a hundred years before she could return.", style: styles.colombina, stage: "intro" },
+      { 
+        text: "She finally has come back to her castle after a long journey as the story begins.", 
+        style: styles.colombina, 
+        stage: "intro",
+        isIntroEnd: true
+      },
+      // PHASE 2: Main Environmental Stage (triggers after clicking the "Begin Journey" button)
+      { 
+        text: "I am back after a long battle fighting monsters in the distant village.", 
+        style: styles.colombina, 
+        stage: "gameplay",
+        action: () => {
+          backgroundView.style.backgroundImage = "url('castle-entrance.jpg')";
+          backgroundView.style.opacity = "1";
+        }
+      },
+      { text: "It took a long time, but I finally can rest back in my castle.", style: styles.colombina, stage: "gameplay" },
+      { 
+        text: "Finally, I can take some eternal time to rest...", 
+        style: styles.colombina, 
+        stage: "gameplay",
+        action: () => {
+          // Trigger the smooth cinematic scaling & climbing up the stairs
+          backgroundView.classList.add('climbing-active');
+        }
+      },
+      { text: "This door is giving off a strange energy.", style: styles.colombina, stage: "gameplay" },
+      { text: "*meow meow!*", style: styles.pusheen, stage: "gameplay" },
+      { 
+        text: "I hear a cat screaming for help, I gotta hurry.", 
+        style: styles.colombina, 
+        stage: "gameplay",
+        isStoryEnd: true
+      },
+      
+      
+    ];
+
+    let currentStep = 0;
+    let isTyping = false;
+    let currentTextTimeout = null;
+    let textToComplete = "";
+    let styleToComplete = null;
+    let introCompleted = false;
+    let storyEndTriggered = false;
+    let storyEndFallbackTimeout = null;
+
+    // Fades the whole screen to black, then navigates to test.html
+    function endStoryAndTransition() {
+      if (storyEndTriggered) return;
+      storyEndTriggered = true;
+
+      clearTimeout(storyEndFallbackTimeout);
+      storyWrapper.classList.add('fade-out-active');
+
+      setTimeout(() => {
+        window.location.href = "../2_hallway/result.html";
+      }, 1500); // matches the 1.5s fade-out-active transition duration
+    }
+
+    // Typewriter core mechanics
+    function typeText(text, style, callback) {
+      isTyping = true;
+      textToComplete = text;
+      styleToComplete = style;
+      
+      textElement.textContent = "";
+      textElement.style.color = style.color;
+      textElement.style.textShadow = style.textShadow;
+      
+      let i = 0;
+      function run() {
+        if (i < text.length) {
+          textElement.textContent += text.charAt(i);
+          i++;
+          currentTextTimeout = setTimeout(run, 40);
+        } else {
+          isTyping = false;
+          if (callback) callback();
+        }
+      }
+      run();
+    }
+
+    // Instantly finish printing the text when the user clicks early
+    function skipTypewriter() {
+      clearTimeout(currentTextTimeout);
+      textElement.textContent = textToComplete;
+      isTyping = false;
+      
+      // Look ahead to check if this was the last line of the intro context
+      const currentLine = storyScript[currentStep - 1];
+      if (currentLine && currentLine.isIntroEnd) {
+        showBeginButton();
+      }
+      if (currentLine && currentLine.isStoryEnd) {
+        endStoryAndTransition();
+      }
+    }
+
+    function showBeginButton() {
+      clickHint.style.display = "none";
+      beginBtn.style.display = "inline-block";
+    }
+
+    // Progressing story sequence logic
+    function advanceStory() {
+      // Guard condition: story has already ended and is transitioning away
+      if (storyEndTriggered) return;
+
+      // Guard condition: If currently text typing, finish rendering it out immediately
+      if (isTyping) {
+        skipTypewriter();
+        return;
+      }
+
+      if (currentStep < storyScript.length) {
+        const nextLine = storyScript[currentStep];
+
+        // Do not let global screen clicks bypass or trigger gameplay steps until button is pressed
+        if (nextLine.stage === "gameplay" && !introCompleted) return;
+
+        currentStep++;
+
+        if (nextLine.action) {
+          nextLine.action();
+        }
+
+        // Safety-net timer: if typing somehow hangs, force the transition
+        // 4 seconds after this line starts appearing on screen.
+        if (nextLine.isStoryEnd) {
+          clearTimeout(storyEndFallbackTimeout);
+          storyEndFallbackTimeout = setTimeout(endStoryAndTransition, 4000);
+        }
+
+        typeText(nextLine.text, nextLine.style, () => {
+          if (nextLine.isIntroEnd) {
+            showBeginButton();
+          }
+          if (nextLine.isStoryEnd) {
+            endStoryAndTransition();
+          }
+        });
+      }
+    }
+
+    // Wrapper global interaction zone handler
+    storyWrapper.addEventListener('click', (e) => {
+      // Ignore background clicks if the click targeted the Begin button directly
+      if (e.target === beginBtn) return;
+      advanceStory();
+    });
+
+    // Start Button triggers image layer fade-in sequence
+    beginBtn.addEventListener('click', () => {
+      introCompleted = true;
+      beginBtn.style.display = "none";
+      
+      // Smoothly restructure visual architecture from dark container setup to full ambient setup
+      introBox.style.background = "transparent";
+      introBox.style.border = "none";
+      introBox.style.boxShadow = "none";
+      introBox.style.top = "15%";
+      clickHint.style.display = "block";
+      
+      advanceStory();
+    });
+
+    // Initial sequence trigger
+    window.addEventListener('DOMContentLoaded', () => {
+      typeText(storyScript[0].text, storyScript[0].style);
+      currentStep = 1;
+    });
+  </script>
+</body>
+</html>

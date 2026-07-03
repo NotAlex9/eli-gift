@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.css">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #0b0a13;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #content-frame {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    #transition-overlay {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at center, rgba(255, 42, 133, 0.18), rgba(11, 10, 19, 0.96) 58%),
+        linear-gradient(180deg, rgba(8, 6, 16, 0.25), rgba(8, 6, 16, 0.98));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.55s ease;
+      z-index: 9998;
+    }
+
+    #transition-overlay.is-active {
+      opacity: 1;
+    }
+
+    .aplayer.aplayer-fixed {
+      left: auto !important;
+      right: 20px !important;
+      bottom: 20px !important;
+      z-index: 9999 !important;
+      width: min(360px, calc(100vw - 24px)) !important;
+      margin: 0 !important;
+    }
+
+    .aplayer.aplayer-fixed .aplayer-body {
+      left: auto !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      max-width: 360px;
+      overflow: hidden;
+      border-radius: 14px !important;
+      background: var(--aplayer-bg-gradient) !important;
+      box-shadow: 0 0 28px rgba(255, 112, 174, 0.28) !important;
+    }
+
+    .aplayer.aplayer-fixed .aplayer-list {
+      border-radius: 0 0 14px 14px;
+      overflow: hidden;
+    }
+
+    .aplayer.aplayer-fixed .aplayer-info {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    .aplayer.aplayer-fixed .aplayer-info .aplayer-controller {
+      display: flex !important;
+      visibility: visible !important;
+    }
+
+    .aplayer.aplayer-fixed .aplayer-icon {
+      display: inline-block !important;
+    }
+
+    :root {
+      --aplayer-bg-gradient: linear-gradient(135deg, #ff2a85 0%, #7000ff 100%);
+      --aplayer-border: #ff75c3;
+      --aplayer-switcher: #f8f8f8;
+      --aplayer-text-primary: #ffffff;
+      --aplayer-text-secondary: #f3c1dc;
+    }
+
+    .aplayer,
+    .aplayer.aplayer-fixed .aplayer-body {
+      background: var(--aplayer-bg-gradient) !important;
+      box-shadow: 0 -5px 25px rgba(255, 112, 174, 0.4) !important;
+      backdrop-filter: blur(5px);
+    }
+
+    .aplayer.aplayer-fixed .aplayer-info {
+      border-top-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .aplayer .aplayer-miniswitcher {
+      background: var(--aplayer-switcher) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .aplayer .aplayer-info .aplayer-music .aplayer-title {
+      color: var(--aplayer-text-primary) !important;
+      font-weight: bold !important;
+      font-size: 15px !important;
+    }
+
+    .aplayer .aplayer-info .aplayer-music .aplayer-author {
+      color: var(--aplayer-text-secondary) !important;
+      font-size: 13px !important;
+    }
+
+    .aplayer .aplayer-info .aplayer-controller .aplayer-time,
+    .aplayer .aplayer-info .aplayer-controller .aplayer-time-inner,
+    .aplayer .aplayer-info .aplayer-controller .aplayer-time-inner span {
+      color: #ffffff !important;
+    }
+
+    .aplayer .aplayer-info .aplayer-controller .aplayer-time .aplayer-icon path {
+      fill: #ffffff !important;
+    }
+
+    .aplayer .aplayer-list {
+      background: #160f26 !important;
+    }
+
+    .aplayer .aplayer-list ol li {
+      border-top: 1px solid #251b3d !important;
+      color: #bfaecf !important;
+    }
+
+    .aplayer .aplayer-list ol li.aplayer-list-light {
+      background: rgba(255, 42, 133, 0.15) !important;
+    }
+
+    .aplayer .aplayer-list ol li.aplayer-list-light .aplayer-list-title {
+      color: #ff75c3 !important;
+      font-weight: bold;
+    }
+
+    @media (max-width: 640px) {
+      .aplayer.aplayer-fixed {
+        right: 12px !important;
+        bottom: 12px !important;
+        width: calc(100vw - 24px) !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <iframe id="content-frame" src="" name="content-frame"></iframe>
+  <div id="transition-overlay" aria-hidden="true"></div>
+  
+  <div id="autoplay-unlock-cover" style="position: fixed; inset: 0; z-index: 99999; cursor: pointer;"></div>
+  
+  <div id="aplayer-official"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.js"></script>
+
+  <script>
+    const pages = [
+      {
+        file: "1_entrance/index.html",
+        autoplay: true,
+        playlist: [
+          {
+            name: "Threshold Theme",
+            artist: "W3Schools Demo",
+            url: "audio/clannad.mp3",
+            cover: "https://picsum.photos/seed/threshold-theme/300/300"
+          }
+        ]
+      },
+      {
+        file: "final.html",
+        autoplay: true,
+        playlist: [
+          {
+            name: "Final Memory",
+            artist: "MDN Demo",
+            url: "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3",
+            cover: "https://picsum.photos/seed/final-memory/300/300"
+          }
+        ]
+      },
+      { file: "../2_hallway/result.html", autoplay: true, playlist: [{url: "audio/faded.mp3"}] },
+      { file: "", autoplay: false, playlist: [] },
+      { file: "", autoplay: false, playlist: [] },
+      { file: "", autoplay: false, playlist: [] },
+      { file: "", autoplay: false, playlist: [] },
+      { file: "", autoplay: false, playlist: [] }
+    ];
+
+    const activePages = pages.filter(p => p.file.trim() !== "");
+    const frame = document.getElementById('content-frame');
+    const transitionOverlay = document.getElementById('transition-overlay');
+    const unlockCover = document.getElementById('autoplay-unlock-cover');
+
+    let ap = null;
+    let currentPageConfig = null;
+    let pendingTransition = false;
+
+    function initPlayer(initialAudio) {
+      ap = new APlayer({
+        container: document.getElementById('aplayer-official'),
+        fixed: true,
+        mini: false,
+        theme: '#ff2a85',
+        audio: initialAudio
+      });
+    }
+
+    // Handles the very first click, wherever the cover is on top.
+    // Decoupled from player-readiness so the overlay ALWAYS disappears
+    // immediately, even if APlayer hasn't finished initializing yet.
+    function unlockAndDismissCover(e) {
+      // STEP 1, ALWAYS FIRST, NO MATTER WHAT: kill the cover.
+      // Nothing below this line can prevent the overlay from disappearing.
+      if (unlockCover && unlockCover.parentNode) {
+        unlockCover.removeEventListener('click', unlockAndDismissCover);
+        unlockCover.style.pointerEvents = 'none';
+        unlockCover.style.display = 'none';
+        unlockCover.parentNode.removeChild(unlockCover);
+      }
+
+      // STEP 2: try to start playback, whenever the player is ready.
+      // Wrapped so any error here can never affect step 1.
+      try {
+        if (ap) {
+          ap.play().catch(err => console.log("Autoplay blocked/failed:", err));
+        } else {
+          const waitForPlayer = setInterval(() => {
+            if (ap) {
+              clearInterval(waitForPlayer);
+              ap.play().catch(err => console.log("Autoplay blocked/failed:", err));
+            }
+          }, 50);
+          setTimeout(() => clearInterval(waitForPlayer), 3000);
+        }
+      } catch (err) {
+        console.log("Player start error:", err);
+      }
+    }
+
+    if (unlockCover) {
+      unlockCover.addEventListener('click', unlockAndDismissCover);
+    }
+
+    function matchConfigToFrameURL() {
+      let framePath;
+      try {
+        framePath = frame.contentWindow.location.pathname;
+      } catch (e) {
+        return null;
+      }
+
+      const shellPath = window.location.pathname.replace(/[^/]*$/, '');
+      let relative = framePath.startsWith(shellPath)
+        ? framePath.slice(shellPath.length)
+        : framePath.split('/').pop();
+
+      relative = relative.replace(/^\.\//, '');
+      return activePages.find(p => p.file === relative) || null;
+    }
+
+    function applyPageConfig(cfg) {
+      if (!cfg) return;
+      currentPageConfig = cfg;
+
+      if (cfg.playlist && cfg.playlist.length > 0) {
+        if (!ap) {
+          initPlayer(cfg.playlist);
+        } else {
+          ap.list.clear();
+          ap.list.add(cfg.playlist);
+          ap.list.switch(0);
+          // If playback is allowed, start immediately on sub‑page transitions
+          if (!document.getElementById('autoplay-unlock-cover') && cfg.autoplay) {
+            ap.play().catch(() => {});
+          }
+        }
+      } else if (!ap) {
+        initPlayer([]);
+      }
+    }
+
+    function findPageConfig(fileName) {
+      return activePages.find(p => p.file === fileName) || null;
+    }
+
+    function loadPage(fileName) {
+      const cfg = findPageConfig(fileName);
+      if (!cfg) return;
+      frame.src = cfg.file;
+    }
+
+    function releaseTransitionOverlay() {
+      transitionOverlay.classList.remove('is-active');
+      pendingTransition = false;
+    }
+
+    function transitionToPage(fileName) {
+      const cfg = findPageConfig(fileName);
+      if (!cfg || pendingTransition) return;
+
+      pendingTransition = true;
+      transitionOverlay.classList.add('is-active');
+
+      window.setTimeout(() => {
+        frame.src = cfg.file;
+      }, 450);
+    }
+
+    frame.addEventListener('load', () => {
+      const cfg = matchConfigToFrameURL();
+      if (cfg) {
+        applyPageConfig(cfg);
+      }
+
+      if (pendingTransition) {
+        window.setTimeout(releaseTransitionOverlay, 140);
+      }
+    });
+
+    if (activePages.length > 0) {
+      applyPageConfig(activePages[0]);
+      frame.src = activePages[0].file;
+    }
+
+    window.goToPage = loadPage;
+    window.transitionToPage = transitionToPage;
+  </script>
+</body>
+</html>

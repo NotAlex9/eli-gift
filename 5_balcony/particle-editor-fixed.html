@@ -1,0 +1,2494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>✨ Particle Studio</title>
+<script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
+<style>
+:root {
+  --bg: #0d0d1a;
+  --panel: #13131f;
+  --panel2: #1a1a2e;
+  --border: #2a2a45;
+  --accent: #7c5cbf;
+  --accent2: #a07de0;
+  --gold: #c8a040;
+  --text: #e0dff5;
+  --text2: #8888aa;
+  --danger: #c04060;
+  --green: #40c080;
+  --radius: 8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
+
+/* ── LAYOUT ── */
+#app{display:flex;height:100vh;width:100vw;}
+#sidebar{width:320px;min-width:320px;height:100%;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;z-index:10;}
+#preview{flex:1;position:relative;overflow:hidden;}
+
+/* ── SIDEBAR HEADER ── */
+#sidebar-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);background:var(--panel2);}
+#sidebar-header h1{font-size:15px;font-weight:700;color:var(--accent2);letter-spacing:.5px;}
+#sidebar-header p{color:var(--text2);font-size:11px;margin-top:2px;}
+
+/* ── TABS ── */
+#tabs{display:flex;border-bottom:1px solid var(--border);}
+.tab{flex:1;padding:9px 4px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;color:var(--text2);transition:all .15s;letter-spacing:.3px;}
+.tab:hover{color:var(--text);background:rgba(124,92,191,.1);}
+.tab.active{color:var(--accent2);border-bottom:2px solid var(--accent2);background:rgba(124,92,191,.08);}
+
+/* ── SCROLLABLE CONTENT ── */
+#tab-content{flex:1;overflow-y:auto;overflow-x:hidden;}
+#tab-content::-webkit-scrollbar{width:4px;}
+#tab-content::-webkit-scrollbar-track{background:transparent;}
+#tab-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── SECTION ── */
+.section{padding:12px 14px;border-bottom:1px solid var(--border);}
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:10px;}
+
+/* ── LAYER LIST ── */
+#layer-list{padding:10px 14px;display:flex;flex-direction:column;gap:6px;}
+.layer-item{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 10px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px;}
+.layer-item:hover{border-color:var(--accent);}
+.layer-item.selected{border-color:var(--accent2);background:rgba(124,92,191,.12);}
+.layer-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.layer-name{flex:1;font-weight:600;font-size:12px;}
+.layer-type{font-size:10px;color:var(--text2);}
+.layer-actions{display:flex;gap:4px;margin-left:auto;}
+.layer-btn{background:none;border:none;color:var(--text2);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:12px;transition:all .15s;}
+.layer-btn:hover{background:rgba(255,255,255,.08);color:var(--text);}
+.layer-btn.del:hover{color:var(--danger);}
+.layer-btn.vis{font-size:11px;}
+
+/* ── ADD LAYER ── */
+#add-layer-bar{padding:10px 14px;border-top:1px solid var(--border);}
+#add-layer-bar select{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:var(--radius);font-size:12px;margin-bottom:7px;}
+#add-layer-bar select:focus{outline:none;border-color:var(--accent);}
+#btn-add{width:100%;padding:8px;background:var(--accent);border:none;color:#fff;border-radius:var(--radius);font-weight:700;cursor:pointer;font-size:12px;transition:background .15s;}
+#btn-add:hover{background:var(--accent2);}
+
+/* ── FORM CONTROLS ── */
+.field{margin-bottom:10px;}
+.field label{display:block;color:var(--text2);font-size:11px;margin-bottom:4px;font-weight:600;}
+.field input[type=range]{width:100%;accent-color:var(--accent2);}
+.field input[type=number],.field input[type=text],.field select{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:12px;}
+.field input[type=number]:focus,.field input[type=text]:focus,.field select:focus{outline:none;border-color:var(--accent);}
+.field-row{display:flex;gap:8px;}
+.field-row .field{flex:1;}
+.val-display{float:right;color:var(--accent2);font-weight:700;}
+.field input[type=color]{width:36px;height:28px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:none;padding:1px;}
+.color-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.color-chip{position:relative;}
+.color-chip input[type=color]{width:28px;height:28px;}
+.color-chip .rm{position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:14px;height:14px;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+#btn-add-color{background:var(--panel2);border:1px dashed var(--border);color:var(--text2);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;}
+#btn-add-color:hover{border-color:var(--accent);color:var(--accent2);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.toggle-row label{color:var(--text2);font-size:11px;font-weight:600;}
+.toggle{position:relative;display:inline-block;width:32px;height:17px;}
+.toggle input{opacity:0;width:0;height:0;}
+.slider-tog{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:17px;transition:.2s;}
+.slider-tog:before{content:'';position:absolute;width:13px;height:13px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s;}
+input:checked+.slider-tog{background:var(--accent);}
+input:checked+.slider-tog:before{transform:translateX(15px);}
+
+/* ── BG SECTION ── */
+#bg-canvas{position:absolute;inset:0;width:100%;height:100%;}
+#bg-image-layer{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;}
+.particle-canvas-layer{position:absolute;inset:0;width:100%;height:100%;}
+
+/* ── BOTTOM BAR ── */
+#bottom-bar{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:7px;background:var(--panel2);}
+#bottom-bar button{flex:1;padding:8px 4px;border:none;border-radius:var(--radius);font-weight:700;font-size:11px;cursor:pointer;transition:all .15s;}
+#btn-export{background:var(--gold);color:#1a1200;}
+#btn-export:hover{background:#e0b840;}
+#btn-reset-bg{background:var(--panel);border:1px solid var(--border);color:var(--text2);}
+#btn-reset-bg:hover{border-color:var(--accent);color:var(--text);}
+
+/* ── BG UPLOAD ── */
+#bg-upload-area{margin:10px 14px;border:2px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;transition:all .15s;color:var(--text2);font-size:12px;}
+#bg-upload-area:hover{border-color:var(--accent);color:var(--text);}
+#bg-upload-input{display:none;}
+#bg-filename{margin:6px 14px 0;font-size:11px;color:var(--accent2);word-break:break-all;}
+
+/* ── EMPTY STATE ── */
+#empty-state{padding:24px 14px;text-align:center;color:var(--text2);font-size:12px;line-height:1.7;}
+#empty-state .icon{font-size:28px;margin-bottom:8px;}
+
+/* ── PANEL SECTIONS ── */
+.panel-section{border-bottom:1px solid var(--border);}
+.panel-section-header{padding:9px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);user-select:none;}
+.panel-section-header:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.panel-section-header .arrow{transition:transform .2s;}
+.panel-section-header.open .arrow{transform:rotate(90deg);}
+.panel-section-body{padding:10px 14px;display:none;}
+.panel-section-body.open{display:block;}
+
+/* ── PRESETS ── */
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.preset-btn{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:7px 4px;border-radius:6px;cursor:pointer;font-size:11px;text-align:center;transition:all .15s;}
+.preset-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#001a00;padding:8px 18px;border-radius:20px;font-weight:700;font-size:12px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:9999;}
+#toast.show{opacity:1;}
+
+/* ── NO LAYER SELECTED ── */
+#no-layer-msg{padding:20px 14px;text-align:center;color:var(--text2);font-size:12px;}
+
+/* ── HOTSPOT BOXES ── */
+.ps-hotspot-box {
+  position: absolute;
+  border: 2px dashed var(--gold);
+  background: rgba(200,160,64,0.04);
+  cursor: move;
+  z-index: 25;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  pointer-events: auto;
+  user-select: none;
+  touch-action: none;
+}
+.ps-hotspot-box:hover { filter: brightness(1.15); }
+.ps-hotspot-box.ps-selected { border-width: 2px; }
+.ps-hotspot-box.type-border { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.5); }
+.ps-hotspot-box.type-border:hover { background: rgba(255,255,255,0.08); box-shadow: 0 0 18px rgba(255,255,255,0.14); }
+.ps-hotspot-box.type-border.ps-selected { background: rgba(255,255,255,0.08); border-style: solid; }
+.ps-hs-label {
+  position: absolute; top: -20px; left: 0;
+  background: var(--panel); color: var(--gold);
+  font-size: 10px; padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+  border: 1px solid var(--border); pointer-events: none;
+}
+.ps-resize-handle {
+  position: absolute; bottom: -5px; right: -5px;
+  width: 11px; height: 11px; background: var(--gold);
+  border-radius: 2px; cursor: se-resize;
+  touch-action: none;
+}
+.ps-hs-item {
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 8px 10px; margin-bottom: 6px; cursor: pointer; transition: all .15s;
+}
+.ps-hs-item:hover { border-color: var(--accent); }
+.ps-hs-item.ps-hs-selected { border-color: var(--accent2); background: rgba(124,92,191,.12); }
+.ps-hs-item-name { font-size: 12px; color: var(--gold); font-weight: 600; margin-bottom: 2px; }
+.ps-hs-item-sub  { font-size: 10px; color: var(--text2); }
+
+/* ── NARRATIVE ITEMS ── */
+.nar-item {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.nar-item:hover { border-color: var(--accent); }
+.nar-item.nar-selected { border-color: var(--accent2); background: rgba(124,92,191,.12); }
+.nar-item-text { font-size: 12px; color: var(--text); font-weight: 600; margin-bottom: 4px; line-height: 1.4; }
+.nar-item-sub { font-size: 10px; color: var(--text2); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══ SIDEBAR ══ -->
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <h1>✨ Particle Studio</h1>
+      <p>tsParticles visual editor — export ready HTML</p>
+    </div>
+
+    <div id="tabs">
+      <div class="tab active" data-tab="layers">Layers</div>
+      <div class="tab" data-tab="edit">Edit</div>
+      <div class="tab" data-tab="bg">Background</div>
+      <div class="tab" data-tab="presets">Presets</div>
+      <div class="tab" data-tab="narrative">📝 Narrative</div>
+      <div class="tab" data-tab="hotspots">📖 Hotspots</div>
+    </div>
+
+    <div id="tab-content">
+
+      <!-- ── LAYERS TAB ── -->
+      <div id="tab-layers" class="tab-pane">
+        <div id="layer-list"></div>
+        <div id="empty-state" style="display:none;">
+          <div class="icon">🌌</div>
+          No layers yet.<br>Pick a type below and click <b>Add Layer</b>
+        </div>
+      </div>
+
+      <!-- ── EDIT TAB ── -->
+      <div id="tab-edit" class="tab-pane" style="display:none;">
+        <div id="no-layer-msg">← Select a layer first</div>
+        <div id="edit-form" style="display:none;"></div>
+      </div>
+
+      <!-- ── BG TAB ── -->
+      <div id="tab-bg" class="tab-pane" style="display:none;">
+        <div class="section">
+          <div class="section-title">Background Image</div>
+          <div id="bg-upload-area" onclick="document.getElementById('bg-upload-input').click()">
+            📂 Click to upload background image<br>
+            <span style="font-size:10px;">PNG, JPG, WebP supported</span>
+          </div>
+          <input type="file" id="bg-upload-input" accept="image/*"/>
+          <div id="bg-filename"></div>
+          <input type="file" id="import-html-input" accept=".html,.htm" style="display:none" onchange="handleImportHTML(event)"/>
+        </div>
+        <div class="section">
+          <div class="section-title">Background Color</div>
+          <div class="field">
+            <label>Fallback color <span class="val-display" id="bg-color-val">#0d0d1a</span></label>
+            <input type="color" id="bg-color-input" value="#0d0d1a" oninput="updateBgColor(this.value)"/>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">Image Fit</div>
+          <div class="field">
+            <select id="bg-size-select" onchange="updateBgSize(this.value)">
+              <option value="cover">Cover (fill, crop edges)</option>
+              <option value="contain">Contain (fit whole image)</option>
+              <option value="100% 100%">Stretch</option>
+              <option value="auto">Original size</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PRESETS TAB ── -->
+      <div id="tab-presets" class="tab-pane" style="display:none;">
+        <div class="section">
+          <div class="section-title">Quick Add Preset</div>
+          <div class="preset-grid" id="preset-grid"></div>
+        </div>
+      </div>
+
+      <!-- ── NARRATIVE TAB ── -->
+      <div id="tab-narrative" class="tab-pane" style="display:none;">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="narAddItem()" style="flex:1;padding:8px;background:var(--accent);border:none;color:#fff;border-radius:var(--radius);font-weight:700;cursor:pointer;font-size:11px;">+ Add Sentence</button>
+          <button onclick="narDeleteSelected()" style="padding:8px;background:var(--danger);border:none;color:#fff;border-radius:var(--radius);font-weight:700;cursor:pointer;font-size:11px;">✕ Delete</button>
+        </div>
+        <div style="padding:8px 12px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);">
+          Sentences — <span id="nar-count">0</span> <span style="font-size:10px;color:var(--text2);">(click sentence to edit)</span>
+        </div>
+        <div id="nar-list" style="flex:1;overflow-y:auto;padding:8px;">
+          <div id="nar-none-msg" style="padding:20px 14px;text-align:center;color:var(--text2);font-size:12px;line-height:1.7;">
+            <div style="font-size:24px;margin-bottom:6px;">📝</div>
+            Add narrative sentences<br>that play one after another
+          </div>
+        </div>
+        <div id="nar-editor" style="display:none;padding:12px 14px;border-top:1px solid var(--border);flex-shrink:0;">
+          <div class="field">
+            <label>Sentence Text</label>
+            <textarea id="nar-f-text" placeholder="Type your sentence here..." oninput="narUpd('text',this.value)" style="min-height:54px;width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:12px;resize:vertical;"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Font Size <span class="val-display" id="nar-f-size-val">1.6</span></label>
+              <input type="range" id="nar-f-size" min="0.6" max="4" step="0.1" value="1.6" oninput="document.getElementById('nar-f-size-val').textContent=this.value;narUpd('fontSize',+this.value);narRender()">
+            </div>
+            <div class="field" style="flex:0.7;">
+              <label>Speed <span class="val-display" id="nar-f-speed-val">45</span></label>
+              <input type="range" id="nar-f-speed" min="10" max="120" step="5" value="45" oninput="document.getElementById('nar-f-speed-val').textContent=this.value;narUpd('speed',+this.value)">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Text Color</label>
+              <input type="color" id="nar-f-color" value="#e8bbff" oninput="narUpd('color',this.value);narRender()">
+            </div>
+            <div class="field">
+              <label>Glow Color</label>
+              <input type="color" id="nar-f-glow" value="#e8bbff" oninput="narUpd('glowColor',this.value);narRender()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>X% <span class="val-display" id="nar-f-x-val">35</span></label>
+              <input type="range" min="0" max="100" value="35" oninput="document.getElementById('nar-f-x-val').textContent=this.value;narUpd('xPct',+this.value);narRender()">
+            </div>
+            <div class="field">
+              <label>Y% <span class="val-display" id="nar-f-y-val">85</span></label>
+              <input type="range" min="0" max="100" value="85" oninput="document.getElementById('nar-f-y-val').textContent=this.value;narUpd('yPct',+this.value);narRender()">
+            </div>
+          </div>
+          <div class="field">
+            <label>Text Align</label>
+            <select id="nar-f-align" onchange="narUpd('align',this.value);narRender()">
+              <option value="left">Left</option>
+              <option value="center" selected>Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Font Family</label>
+            <select id="nar-f-font" onchange="narUpd('fontFamily',this.value);narRender()">
+              <option value="'Courier New', Courier, monospace" selected>Courier New</option>
+              <option value="'Playfair Display', Georgia, serif">Playfair Display</option>
+              <option value="'Segoe UI', system-ui, sans-serif">Segoe UI</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'Times New Roman', serif">Times New Roman</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── HOTSPOTS TAB ── -->
+      <div id="tab-hotspots" class="tab-pane" style="display:none;">
+
+        <!-- Editor panel — shown when a hotspot is selected -->
+        <div id="hs-editor" style="display:none;padding:12px 14px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:700;color:var(--accent2);">Edit Hotspot</span>
+            <button onclick="hsDeleteSelected()" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;">Delete</button>
+          </div>
+          <div class="field">
+            <label>Name</label>
+            <input type="text" id="hs-f-name" placeholder="Left bookshelf" oninput="hsUpd('name',this.value)"/>
+          </div>
+          <div class="field">
+            <label>Type</label>
+            <select id="hs-f-type" onchange="hsTypeChanged(this.value)">
+              <option value="book">Book</option>
+              <option value="bulb">Light</option>
+              <option value="particles">Particles</option>
+              <option value="border">Border</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Book Title</label>
+            <input type="text" id="hs-f-title" placeholder="The Lost Pages" oninput="hsUpd('title',this.value)"/>
+          </div>
+          <div class="field">
+            <label>Your Writing</label>
+            <textarea id="hs-f-msg" placeholder="Write your first page here…" oninput="hsUpd('message',this.value)" style="min-height:80px;width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:12px;resize:vertical;"></textarea>
+            <button onclick="hsInsertPageBreak()" style="margin-top:6px;width:100%;padding:6px;background:var(--panel2);border:1px solid var(--border);color:var(--text2);border-radius:6px;cursor:pointer;font-size:11px;">Next page ↪</button>
+          </div>
+          <div class="field">
+            <label>Glow Color</label>
+            <select id="hs-f-color" onchange="hsUpd('color',this.value)">
+              <option value="gold">Golden</option>
+              <option value="purple">Purple</option>
+              <option value="teal">Teal</option>
+              <option value="rose">Rose</option>
+            </select>
+          </div>
+          <div class="field" id="hs-light-scene-field" style="display:none;">
+            <label>Light Hotspot</label>
+            <div style="font-size:11px;color:var(--text2);padding:6px 0;">Clicking this in the exported scene fades to black, then navigates to <b>test.html</b> (must sit next to the exported HTML file). No picture upload needed.</div>
+          </div>
+        </div>
+
+        <!-- Hotspot list -->
+        <div style="padding:8px 12px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);">
+          Hotspots — <span id="hs-count-ps">0</span>
+        </div>
+        <div id="hs-list-ps" style="flex:1;overflow-y:auto;padding:8px;">
+          <div id="hs-none-msg" style="padding:20px 14px;text-align:center;color:var(--text2);font-size:12px;line-height:1.7;">
+            <div style="font-size:24px;margin-bottom:6px;">📖</div>
+            Draw on the preview<br>to place a book hotspot
+          </div>
+        </div>
+
+        <div style="padding:10px 12px;border-top:1px solid var(--border);font-size:11px;color:var(--text2);line-height:1.8;">
+          <span style="background:var(--panel2);padding:1px 6px;border-radius:4px;color:var(--accent2);">Drag</span> preview → draw box &nbsp;
+          <span style="background:var(--panel2);padding:1px 6px;border-radius:4px;color:var(--accent2);">Click</span> box → edit &nbsp;
+          <span style="background:var(--panel2);padding:1px 6px;border-radius:4px;color:var(--accent2);">⌟</span> → resize &nbsp;
+          <span style="background:var(--panel2);padding:1px 6px;border-radius:4px;color:var(--accent2);">Del</span> → delete
+        </div>
+      </div>
+
+    </div><!-- end tab-content -->
+
+    <!-- Add layer bar (always visible) -->
+    <div id="add-layer-bar">
+      <select id="new-layer-type">
+        <option value="stars">⭐ Stars / Sparkles</option>
+        <option value="bokeh">🔮 Bokeh Orbs</option>
+        <option value="lanterns">🏮 Rising Lanterns</option>
+        <option value="snow">❄️ Snow / Petals</option>
+        <option value="fireflies">🪲 Fireflies</option>
+        <option value="dust">🌫️ Dust / Smoke</option>
+        <option value="bubbles">🫧 Bubbles</option>
+        <option value="confetti">🎊 Confetti</option>
+        <option value="rain">🌧️ Rain</option>
+        <option value="custom">⚙️ Custom (blank)</option>
+      </select>
+      <button id="btn-add" onclick="addLayer()">+ Add Layer</button>
+    </div>
+
+    <div id="bottom-bar">
+      <button id="btn-reset-bg" onclick="clearBg()">🗑 Clear BG</button>
+      <button id="btn-import-html" onclick="document.getElementById('import-html-input').click()">📁 Import HTML</button>
+      <button id="btn-export" onclick="exportHTML()">⬇ Export HTML</button>
+    </div>
+  </div>
+
+  <!-- ══ PREVIEW ══ -->
+  <div id="preview">
+    <div id="bg-image-layer"></div>
+    <!-- particle canvases injected here -->
+    <!-- narrative overlay (shown in preview for editing) -->
+    <div id="nar-overlay" style="position:absolute;inset:0;pointer-events:none;z-index:15;">
+      <div id="nar-preview" style="position:absolute;display:inline-block;font-family:'Courier New',Courier,monospace;font-size:1.6rem;font-weight:bold;color:#e8bbff;text-shadow:0 0 8px rgba(232,187,255,0.6);line-height:1.6;text-align:left;white-space:pre-wrap;pointer-events:none;"></div>
+    </div>
+    <!-- hotspot overlay (shown only in hotspots tab) -->
+    <div id="hs-overlay" style="position:absolute;inset:0;display:none;pointer-events:none;z-index:20;touch-action:none;">
+      <div id="hs-draw-sel" style="position:absolute;border:2px dashed var(--accent);background:rgba(124,92,191,0.1);pointer-events:none;display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast">Copied to clipboard!</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let layers = [];
+let selectedId = null;
+let bgImage = null;
+let bgColor = '#0d0d1a';
+let bgSize = 'cover';
+let layerCounter = 0;
+
+const COLORS = [
+  '#ffffff','#c8d8ff','#a0b8ff','#ffe080','#ffaa44',
+  '#c080ff','#80ffcc','#ff80a0','#80c8ff','#ffd700'
+];
+
+// ══════════════════════════════════════════════════════════════
+// PRESETS  
+// ══════════════════════════════════════════════════════════════
+const PRESETS = {
+  stars: {
+    name:'Stars', icon:'⭐', color:'#c8d8ff',
+    config:{
+      number:180, colors:['#ffffff','#c8d8ff','#a0b8ff','#e8f0ff'],
+      shape:'circle', sizeMin:0.5, sizeMax:2.2,
+      opacityMin:0.2, opacityMax:0.9, opacityAnim:true,
+      sizeAnim:false, moveEnable:true, speed:0.1, direction:'none',
+      twinkle:true, glow:true, glowColor:'#a8c0ff', glowBlur:4,
+      outMode:'bounce', wobble:false, wobbleDist:0, life:false,
+      emitter:false
+    }
+  },
+  bokeh: {
+    name:'Bokeh Orbs', icon:'🔮', color:'#8b3fa8',
+    config:{
+      number:20, colors:['#3a1a6e','#5c2d8e','#8b3fa8','#c8a040','#7b5ea7'],
+      shape:'circle', sizeMin:50, sizeMax:150,
+      opacityMin:0.03, opacityMax:0.12, opacityAnim:true,
+      sizeAnim:false, moveEnable:true, speed:0.2, direction:'top',
+      twinkle:false, glow:true, glowColor:'#6a30b0', glowBlur:80,
+      outMode:'out', wobble:false, wobbleDist:0, life:false,
+      emitter:false
+    }
+  },
+  lanterns: {
+    name:'Lanterns', icon:'🏮', color:'#ffaa22',
+    config:{
+      number:0, colors:['#ffcc44','#ffaa22','#ffd880','#ff8800'],
+      shape:'circle', sizeMin:3, sizeMax:7,
+      opacityMin:0.3, opacityMax:0.75, opacityAnim:true,
+      sizeAnim:false, moveEnable:true, speed:0.8, direction:'top',
+      twinkle:false, glow:true, glowColor:'#ffcc44', glowBlur:14,
+      outMode:'destroy', wobble:true, wobbleDist:8, life:true,
+      lifeMin:8, lifeMax:18, emitter:true, emitDelay:1.8, emitQty:1
+    }
+  },
+  snow: {
+    name:'Snow / Petals', icon:'❄️', color:'#b0e0ff',
+    config:{
+      number:120, colors:['#ffffff','#d0eeff','#e8f8ff','#f0f8ff'],
+      shape:'circle', sizeMin:2, sizeMax:6,
+      opacityMin:0.3, opacityMax:0.8, opacityAnim:false,
+      sizeAnim:false, moveEnable:true, speed:0.6, direction:'bottom',
+      twinkle:false, glow:false, glowColor:'#ffffff', glowBlur:4,
+      outMode:'out', wobble:true, wobbleDist:15, life:false,
+      emitter:false
+    }
+  },
+  fireflies: {
+    name:'Fireflies', icon:'🪲', color:'#aaff44',
+    config:{
+      number:40, colors:['#aaff44','#88ff22','#ccff88','#ffff44'],
+      shape:'circle', sizeMin:2, sizeMax:5,
+      opacityMin:0.1, opacityMax:1.0, opacityAnim:true,
+      sizeAnim:false, moveEnable:true, speed:0.4, direction:'none',
+      twinkle:true, glow:true, glowColor:'#88ff22', glowBlur:10,
+      outMode:'bounce', wobble:false, wobbleDist:0, life:false,
+      emitter:false
+    }
+  },
+  dust: {
+    name:'Dust / Smoke', icon:'🌫️', color:'#888899',
+    config:{
+      number:60, colors:['#888899','#aaaacc','#ccccdd','#999988'],
+      shape:'circle', sizeMin:3, sizeMax:12,
+      opacityMin:0.02, opacityMax:0.15, opacityAnim:true,
+      sizeAnim:true, moveEnable:true, speed:0.15, direction:'top',
+      twinkle:false, glow:false, glowColor:'#888899', glowBlur:4,
+      outMode:'out', wobble:true, wobbleDist:20, life:false,
+      emitter:false
+    }
+  },
+  bubbles: {
+    name:'Bubbles', icon:'🫧', color:'#80c8ff',
+    config:{
+      number:50, colors:['#80c8ff','#c0e8ff','#ffffff','#60a8ff'],
+      shape:'circle', sizeMin:4, sizeMax:20,
+      opacityMin:0.1, opacityMax:0.4, opacityAnim:true,
+      sizeAnim:false, moveEnable:true, speed:0.5, direction:'top',
+      twinkle:false, glow:true, glowColor:'#80c8ff', glowBlur:8,
+      outMode:'out', wobble:true, wobbleDist:12, life:false,
+      emitter:false
+    }
+  },
+  confetti: {
+    name:'Confetti', icon:'🎊', color:'#ff80c0',
+    config:{
+      number:100, colors:['#ff80c0','#80c0ff','#ffcc44','#80ff80','#c080ff'],
+      shape:'square', sizeMin:4, sizeMax:8,
+      opacityMin:0.6, opacityMax:1.0, opacityAnim:false,
+      sizeAnim:false, moveEnable:true, speed:2.0, direction:'bottom',
+      twinkle:false, glow:false, glowColor:'#ffffff', glowBlur:4,
+      outMode:'out', wobble:true, wobbleDist:30, life:false,
+      emitter:false
+    }
+  },
+  rain: {
+    name:'Rain', icon:'🌧️', color:'#4488cc',
+    config:{
+      number:200, colors:['#4488cc','#6699dd','#88aaee','#aabbff'],
+      shape:'circle', sizeMin:1, sizeMax:2,
+      opacityMin:0.2, opacityMax:0.6, opacityAnim:false,
+      sizeAnim:false, moveEnable:true, speed:6.0, direction:'bottom-right',
+      twinkle:false, glow:false, glowColor:'#4488cc', glowBlur:4,
+      outMode:'out', wobble:false, wobbleDist:0, life:false,
+      emitter:false
+    }
+  },
+  custom: {
+    name:'Custom', icon:'⚙️', color:'#888888',
+    config:{
+      number:50, colors:['#ffffff'],
+      shape:'circle', sizeMin:2, sizeMax:6,
+      opacityMin:0.4, opacityMax:0.9, opacityAnim:false,
+      sizeAnim:false, moveEnable:true, speed:0.5, direction:'none',
+      twinkle:false, glow:false, glowColor:'#ffffff', glowBlur:4,
+      outMode:'bounce', wobble:false, wobbleDist:0, life:false,
+      emitter:false
+    }
+  }
+};
+
+const PRESET_DESCRIPTIONS = {
+  stars:'Twinkling white/blue stars',bokeh:'Soft glowing bokeh orbs',
+  lanterns:'Warm rising sky lanterns',snow:'Gentle falling snow',
+  fireflies:'Glowing fireflies',dust:'Subtle ambient dust',
+  bubbles:'Floating transparent bubbles',confetti:'Colorful falling confetti',
+  rain:'Fast diagonal rain'
+};
+
+// ══════════════════════════════════════════════════════════════
+// LAYER MANAGEMENT
+// ══════════════════════════════════════════════════════════════
+function addLayer(typeOverride) {
+  const type = typeOverride || document.getElementById('new-layer-type').value;
+  const preset = PRESETS[type] || PRESETS.custom;
+  const id = 'layer_' + (++layerCounter);
+  const layer = {
+    id, type,
+    name: preset.name + ' ' + layerCounter,
+    color: preset.color,
+    visible: true,
+    config: JSON.parse(JSON.stringify(preset.config))
+  };
+  layers.push(layer);
+  renderLayerList();
+  selectLayer(id);
+  renderParticles(id);
+  switchTab('layers');
+}
+
+function deleteLayer(id) {
+  destroyParticles(id);
+  layers = layers.filter(l => l.id !== id);
+  if (selectedId === id) {
+    selectedId = layers.length ? layers[layers.length-1].id : null;
+  }
+  renderLayerList();
+  if (selectedId) renderEditForm(selectedId);
+  else {
+    document.getElementById('edit-form').style.display='none';
+    document.getElementById('no-layer-msg').style.display='block';
+  }
+}
+
+function toggleLayerVisible(id) {
+  const layer = layers.find(l=>l.id===id);
+  if(!layer) return;
+  layer.visible = !layer.visible;
+  const el = document.getElementById('canvas_'+id);
+  if(el) el.style.display = layer.visible ? '' : 'none';
+  renderLayerList();
+}
+
+function selectLayer(id) {
+  selectedId = id;
+  renderLayerList();
+  renderEditForm(id);
+}
+
+function renderLayerList() {
+  const list = document.getElementById('layer-list');
+  const empty = document.getElementById('empty-state');
+  if(!layers.length) {
+    list.innerHTML='';
+    empty.style.display='block';
+    return;
+  }
+  empty.style.display='none';
+  list.innerHTML = layers.map(l=>`
+    <div class="layer-item${l.id===selectedId?' selected':''}" onclick="selectLayer('${l.id}')">
+      <div class="layer-dot" style="background:${l.color};box-shadow:0 0 6px ${l.color}88;"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="layer-name">${l.name}</div>
+        <div class="layer-type">${PRESETS[l.type]?.icon||'⚙️'} ${l.type}</div>
+      </div>
+      <div class="layer-actions">
+        <button class="layer-btn vis" onclick="event.stopPropagation();toggleLayerVisible('${l.id}')" title="${l.visible?'Hide':'Show'}">${l.visible?'👁':'🙈'}</button>
+        <button class="layer-btn del" onclick="event.stopPropagation();deleteLayer('${l.id}')" title="Delete">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// EDIT FORM
+// ══════════════════════════════════════════════════════════════
+function renderEditForm(id) {
+  const layer = layers.find(l=>l.id===id);
+  if(!layer){ 
+    document.getElementById('no-layer-msg').style.display='block';
+    document.getElementById('edit-form').style.display='none';
+    return;
+  }
+  document.getElementById('no-layer-msg').style.display='none';
+  const form = document.getElementById('edit-form');
+  form.style.display='block';
+  const c = layer.config;
+
+  form.innerHTML = `
+    <!-- NAME -->
+    <div class="panel-section">
+      <div class="panel-section-header open" onclick="toggleSection(this)">
+        <span>Layer Info</span><span class="arrow">▶</span>
+      </div>
+      <div class="panel-section-body open">
+        <div class="field">
+          <label>Name</label>
+          <input type="text" value="${layer.name}" oninput="updateLayerName('${id}',this.value)"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- PARTICLES -->
+    <div class="panel-section">
+      <div class="panel-section-header open" onclick="toggleSection(this)">
+        <span>Particles</span><span class="arrow">▶</span>
+      </div>
+      <div class="panel-section-body open">
+        <div class="field">
+          <label>Shape</label>
+          <select onchange="updateCfg('${id}','shape',this.value);refreshLayer('${id}')">
+            ${['circle','square','triangle','star','polygon','line'].map(s=>`<option value="${s}"${c.shape===s?' selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Count <span class="val-display" id="num_${id}">${c.number}</span></label>
+          <input type="range" min="0" max="500" value="${c.number}"
+            oninput="document.getElementById('num_${id}').textContent=this.value;updateCfg('${id}','number',+this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="field">
+          <label>Size min <span class="val-display" id="smin_${id}">${c.sizeMin}</span></label>
+          <input type="range" min="0.1" max="200" step="0.1" value="${c.sizeMin}"
+            oninput="document.getElementById('smin_${id}').textContent=this.value;updateCfg('${id}','sizeMin',+this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="field">
+          <label>Size max <span class="val-display" id="smax_${id}">${c.sizeMax}</span></label>
+          <input type="range" min="0.1" max="200" step="0.1" value="${c.sizeMax}"
+            oninput="document.getElementById('smax_${id}').textContent=this.value;updateCfg('${id}','sizeMax',+this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="toggle-row">
+          <label>Animate size</label>
+          <label class="toggle"><input type="checkbox" ${c.sizeAnim?'checked':''} onchange="updateCfg('${id}','sizeAnim',this.checked);refreshLayer('${id}')"/><span class="slider-tog"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLORS -->
+    <div class="panel-section">
+      <div class="panel-section-header open" onclick="toggleSection(this)">
+        <span>Colors</span><span class="arrow">▶</span>
+      </div>
+      <div class="panel-section-body open">
+        <div class="field">
+          <label>Particle colors</label>
+          <div class="color-row" id="colors_${id}">
+            ${c.colors.map((col,i)=>`
+              <div class="color-chip">
+                <input type="color" value="${col}" oninput="updateColor('${id}',${i},this.value)"/>
+                <button class="rm" onclick="removeColor('${id}',${i})">✕</button>
+              </div>`).join('')}
+            <button id="btn-add-color" onclick="addColor('${id}')">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPACITY -->
+    <div class="panel-section">
+      <div class="panel-section-header open" onclick="toggleSection(this)">
+        <span>Opacity</span><span class="arrow">▶</span>
+      </div>
+      <div class="panel-section-body open">
+        <div class="field">
+          <label>Min <span class="val-display" id="omin_${id}">${c.opacityMin}</span></label>
+          <input type="range" min="0" max="1" step="0.01" value="${c.opacityMin}"
+            oninput="document.getElementById('omin_${id}').textContent=this.value;updateCfg('${id}','opacityMin',+this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="field">
+          <label>Max <span class="val-display" id="omax_${id}">${c.opacityMax}</span></label>
+          <input type="range" min="0" max="1" step="0.01" value="${c.opacityMax}"
+            oninput="document.getElementById('omax_${id}').textContent=this.value;updateCfg('${id}','opacityMax',+this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="toggle-row">
+          <label>Animate opacity (twinkle)</label>
+          <label class="toggle"><input type="checkbox" ${c.opacityAnim?'checked':''} onchange="updateCfg('${id}','opacityAnim',this.checked);refreshLayer('${id}')"/><span class="slider-tog"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOVEMENT -->
+    <div class="panel-section">
+      <div class="panel-section-header open" onclick="toggleSection(this)">
+        <span>Movement</span><span class="arrow">▶</span>
+      </div>
+      <div class="panel-section-body open">
+        <div class="toggle-row">
+          <label>Enable movement</label>
+          <label class="toggle"><input type="checkbox" ${c.moveEnable?'checked':''} onchange="updateCfg('${id}','moveEnable',this.checked);refreshLayer('${id}')"/><span class="slider-tog"></span></label>
+        </div>
+        <div class="field">
+          <label>Speed <span class="val-display" id="spd_${id}">${c.speed}</span></label>
+          <input type="range" min="0" max="20" step="0.05" value="${c.speed}"
+            oninput="document.getElementById('spd_${id}').textContent=(+this.value).toFixed(2);updateCfg('${id}','speed',+this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="field">
+          <label>Direction</label>
+          <select onchange="updateCfg('${id}','direction',this.value);refreshLayer('${id}')">
+            ${['none','top','bottom','left','right','top-left','top-right','bottom-left','bottom-right'].map(d=>`<option value="${d}"${c.direction===d?' selected':''}>${d}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Out of bounds</label>
+          <select onchange="updateCfg('${id}','outMode',this.value);refreshLayer('${id}')">
+            ${['bounce','out','destroy','split','none'].map(m=>`<option value="${m}"${c.outMode===m?' selected':''}>${m}</option>`).join('')}
+          </select>
+        </div>
+        <div class="toggle-row">
+          <label>Wobble / sway</label>
+          <label class="toggle"><input type="checkbox" ${c.wobble?'checked':''} onchange="updateCfg('${id}','wobble',this.checked);refreshLayer('${id}')"/><span class="slider-tog"></span></label>
+        </div>
+        <div class="field">
+          <label>Wobble distance <span class="val-display" id="wob_${id}">${c.wobbleDist}</span></label>
+          <input type="range" min="0" max="60" step="1" value="${c.wobbleDist}"
+            oninput="document.getElementById('wob_${id}').textContent=this.value;updateCfg('${id}','wobbleDist',+this.value);refreshLayer('${id}')"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- GLOW -->
+    <div class="panel-section">
+      <div class="panel-section-header open" onclick="toggleSection(this)">
+        <span>Glow / Shadow</span><span class="arrow">▶</span>
+      </div>
+      <div class="panel-section-body open">
+        <div class="toggle-row">
+          <label>Enable glow</label>
+          <label class="toggle"><input type="checkbox" ${c.glow?'checked':''} onchange="updateCfg('${id}','glow',this.checked);refreshLayer('${id}')"/><span class="slider-tog"></span></label>
+        </div>
+        <div class="toggle-row">
+          <label>Twinkle effect</label>
+          <label class="toggle"><input type="checkbox" ${c.twinkle?'checked':''} onchange="updateCfg('${id}','twinkle',this.checked);refreshLayer('${id}')"/><span class="slider-tog"></span></label>
+        </div>
+        <div class="field">
+          <label>Glow color</label>
+          <input type="color" value="${c.glowColor}" oninput="updateCfg('${id}','glowColor',this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="field">
+          <label>Glow blur <span class="val-display" id="gbl_${id}">${c.glowBlur}</span></label>
+          <input type="range" min="0" max="120" step="1" value="${c.glowBlur}"
+            oninput="document.getElementById('gbl_${id}').textContent=this.value;updateCfg('${id}','glowBlur',+this.value);refreshLayer('${id}')"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMITTER / LIFE -->
+    <div class="panel-section">
+      <div class="panel-section-header" onclick="toggleSection(this)">
+        <span>Emitter & Life</span><span class="arrow">▶</span>
+      </div>
+      <div class="panel-section-body">
+        <div class="toggle-row">
+          <label>Use emitter (spawner)</label>
+          <label class="toggle"><input type="checkbox" ${c.emitter?'checked':''} onchange="updateCfg('${id}','emitter',this.checked);refreshLayer('${id}')"/><span class="slider-tog"></span></label>
+        </div>
+        <div class="field">
+          <label>Spawn delay (s) <span class="val-display" id="edelay_${id}">${c.emitDelay||1.8}</span></label>
+          <input type="range" min="0.1" max="10" step="0.1" value="${c.emitDelay||1.8}"
+            oninput="document.getElementById('edelay_${id}').textContent=(+this.value).toFixed(1);updateCfg('${id}','emitDelay',+this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="field">
+          <label>Spawn qty <span class="val-display" id="eqty_${id}">${c.emitQty||1}</span></label>
+          <input type="range" min="1" max="10" step="1" value="${c.emitQty||1}"
+            oninput="document.getElementById('eqty_${id}').textContent=this.value;updateCfg('${id}','emitQty',+this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="toggle-row">
+          <label>Particle has lifespan</label>
+          <label class="toggle"><input type="checkbox" ${c.life?'checked':''} onchange="updateCfg('${id}','life',this.checked);refreshLayer('${id}')"/><span class="slider-tog"></span></label>
+        </div>
+        <div class="field">
+          <label>Life min (s) <span class="val-display" id="lmin_${id}">${c.lifeMin||5}</span></label>
+          <input type="range" min="1" max="60" step="1" value="${c.lifeMin||5}"
+            oninput="document.getElementById('lmin_${id}').textContent=this.value;updateCfg('${id}','lifeMin',+this.value);refreshLayer('${id}')"/>
+        </div>
+        <div class="field">
+          <label>Life max (s) <span class="val-display" id="lmax_${id}">${c.lifeMax||15}</span></label>
+          <input type="range" min="1" max="60" step="1" value="${c.lifeMax||15}"
+            oninput="document.getElementById('lmax_${id}').textContent=this.value;updateCfg('${id}','lifeMax',+this.value);refreshLayer('${id}')"/>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:12px 14px;">
+      <button onclick="refreshLayer('${id}')" style="width:100%;padding:8px;background:var(--accent);border:none;color:#fff;border-radius:var(--radius);font-weight:700;cursor:pointer;font-size:12px;">↺ Refresh Preview</button>
+    </div>
+  `;
+}
+
+function toggleSection(header) {
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function updateLayerName(id, val) {
+  const layer = layers.find(l=>l.id===id);
+  if(layer) { layer.name = val; renderLayerList(); }
+}
+
+function updateCfg(id, key, val) {
+  const layer = layers.find(l=>l.id===id);
+  if(layer) layer.config[key] = val;
+}
+
+function updateColor(id, idx, val) {
+  const layer = layers.find(l=>l.id===id);
+  if(layer) { layer.config.colors[idx]=val; refreshLayer(id); }
+}
+
+function removeColor(id, idx) {
+  const layer = layers.find(l=>l.id===id);
+  if(layer && layer.config.colors.length>1) {
+    layer.config.colors.splice(idx,1);
+    renderEditForm(id);
+    refreshLayer(id);
+  }
+}
+
+function addColor(id) {
+  const layer = layers.find(l=>l.id===id);
+  if(layer) {
+    layer.config.colors.push(COLORS[Math.floor(Math.random()*COLORS.length)]);
+    renderEditForm(id);
+    refreshLayer(id);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// TSPARTICLES
+// ══════════════════════════════════════════════════════════════
+function buildTsConfig(layer) {
+  const c = layer.config;
+  const cfg = {
+    fullScreen: { enable: false },
+    background: { color: 'transparent' },
+    particles: {
+      number: { value: c.emitter ? 0 : c.number },
+      color: { value: c.colors },
+      shape: { type: c.shape },
+      opacity: {
+        value: { min: c.opacityMin, max: c.opacityMax },
+        animation: c.opacityAnim ? { enable:true, speed:0.6, minimumValue:c.opacityMin, sync:false } : { enable:false }
+      },
+      size: {
+        value: { min: c.sizeMin, max: c.sizeMax },
+        animation: c.sizeAnim ? { enable:true, speed:2, minimumValue:c.sizeMin*0.3, sync:false } : { enable:false }
+      },
+      shadow: c.glow ? { enable:true, blur:c.glowBlur, color:{ value:c.glowColor } } : { enable:false },
+      twinkle: c.twinkle ? { particles:{ enable:true, frequency:0.05, opacity:1 } } : undefined,
+      move: {
+        enable: c.moveEnable,
+        speed: c.speed,
+        direction: c.direction,
+        random: true,
+        straight: false,
+        outModes: { default: c.outMode }
+      },
+      wobble: c.wobble ? { enable:true, distance:c.wobbleDist, speed:{ angle:6, move:3 } } : { enable:false },
+      life: c.life ? {
+        duration: { value:{ min:c.lifeMin||5, max:c.lifeMax||15 }, sync:false },
+        count: 1
+      } : undefined
+    },
+    detectRetina: true
+  };
+  if(c.emitter) {
+    cfg.emitters = {
+      direction: c.direction==='none'?'top':c.direction,
+      position: { x:50, y:110 },
+      rate: { delay:c.emitDelay||1.8, quantity:c.emitQty||1 },
+      size: { width:80, height:5 }
+    };
+  }
+  // clean undefined
+  Object.keys(cfg.particles).forEach(k=>{ if(cfg.particles[k]===undefined) delete cfg.particles[k]; });
+  return cfg;
+}
+
+async function renderParticles(id) {
+  const layer = layers.find(l=>l.id===id);
+  if(!layer) return;
+  destroyParticles(id);
+  const preview = document.getElementById('preview');
+  let div = document.createElement('div');
+  div.id = 'canvas_'+id;
+  div.className = 'particle-canvas-layer';
+  div.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;';
+  if(!layer.visible) div.style.display='none';
+  preview.appendChild(div);
+  try {
+    await tsParticles.load('canvas_'+id, buildTsConfig(layer));
+  } catch(e) { console.warn('tsParticles error',id,e); }
+}
+
+function destroyParticles(id) {
+  try {
+    const inst = tsParticles.domItem(0);
+    // find by container id
+    const containers = tsParticles.dom();
+    for(const c of containers) {
+      if(c.canvas?.element?.parentElement?.id === 'canvas_'+id) {
+        c.destroy(); break;
+      }
+    }
+  } catch(e){}
+  const el = document.getElementById('canvas_'+id);
+  if(el) el.remove();
+}
+
+async function refreshLayer(id) {
+  await renderParticles(id);
+}
+
+// ══════════════════════════════════════════════════════════════
+// BACKGROUND
+// ══════════════════════════════════════════════════════════════
+document.getElementById('bg-upload-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    bgImage = ev.target.result;
+    document.getElementById('bg-image-layer').style.backgroundImage = `url('${bgImage}')`;
+    document.getElementById('bg-image-layer').style.backgroundSize = bgSize;
+    document.getElementById('bg-filename').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+});
+
+function updateBgColor(val) {
+  bgColor = val;
+  document.getElementById('bg-color-val').textContent = val;
+  document.getElementById('preview').style.background = val;
+}
+
+function updateBgSize(val) {
+  bgSize = val;
+  document.getElementById('bg-image-layer').style.backgroundSize = val;
+}
+
+function clearBg() {
+  bgImage = null;
+  document.getElementById('bg-image-layer').style.backgroundImage = '';
+  document.getElementById('bg-filename').textContent = '';
+  document.getElementById('bg-upload-input').value = '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
+  const pane = document.getElementById('tab-'+name);
+  if(pane) pane.style.display='block';
+  if(name==='edit' && selectedId) renderEditForm(selectedId);
+  hsTabActive = (name === 'hotspots');
+  hsOverlay.style.display = hsTabActive ? 'block' : 'none';
+  hsOverlay.style.pointerEvents = hsTabActive ? 'auto' : 'none';
+  hsOverlay.style.cursor = hsTabActive ? 'crosshair' : '';
+  previewEl.style.cursor = hsTabActive ? 'crosshair' : '';
+  if (hsTabActive) hsRender();
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+
+// ══════════════════════════════════════════════════════════════
+// PRESETS GRID
+// ══════════════════════════════════════════════════════════════
+function buildPresetGrid() {
+  const grid = document.getElementById('preset-grid');
+  grid.innerHTML = Object.entries(PRESETS).filter(([k])=>k!=='custom').map(([key,p])=>`
+    <button class="preset-btn" onclick="addLayer('${key}');switchTab('layers')">
+      <div style="font-size:18px;margin-bottom:3px;">${p.icon}</div>
+      <div style="font-weight:700;">${p.name}</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:2px;">${PRESET_DESCRIPTIONS[key]||''}</div>
+    </button>
+  `).join('');
+}
+buildPresetGrid();
+
+// ══════════════════════════════════════════════════════════════
+// HOTSPOT COLOR THEMES (editor + export)
+// ══════════════════════════════════════════════════════════════
+const HS_COLORS = {
+  gold:   { border:'#c8a040', borderHi:'#e0b840', bg:'rgba(200,160,64,0.04)', bgHi:'rgba(200,160,64,0.13)', bgSel:'rgba(224,184,64,0.1)', label:'#c8a040', glow:'rgba(200,160,64,0.55)', accent:'#e0b840', panel:'rgba(20,16,8,0.94)' },
+  purple: { border:'#7c5cbf', borderHi:'#a07de0', bg:'rgba(124,92,191,0.04)', bgHi:'rgba(124,92,191,0.13)', bgSel:'rgba(160,125,224,0.1)', label:'#a07de0', glow:'rgba(124,92,191,0.55)', accent:'#a07de0', panel:'rgba(12,8,20,0.94)' },
+  teal:   { border:'#40a090', borderHi:'#60c8b0', bg:'rgba(64,192,176,0.04)', bgHi:'rgba(64,192,176,0.13)', bgSel:'rgba(96,200,176,0.1)', label:'#60c8b0', glow:'rgba(64,192,176,0.55)', accent:'#60c8b0', panel:'rgba(8,16,16,0.94)' },
+  rose:   { border:'#c06080', borderHi:'#e080a0', bg:'rgba(192,96,128,0.04)', bgHi:'rgba(192,96,128,0.13)', bgSel:'rgba(224,128,160,0.1)', label:'#e080a0', glow:'rgba(192,96,128,0.55)', accent:'#e080a0', panel:'rgba(16,8,12,0.94)' },
+};
+function hsGetTheme(color) { return HS_COLORS[color] || HS_COLORS.gold; }
+
+const HS = {
+  hotspots: [],
+  selected: null,
+  nextId: 1,
+};
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg || 'Done!';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function handleImportHTML(e) {
+  const file = e.target?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = event => {
+    const html = event.target.result;
+    const manifestMatch = /<script[^>]+id=["']project-manifest["'][^>]*>([\s\S]*?)<\/script>/i.exec(html);
+    if (!manifestMatch) {
+      // Not an editor-manifest file — try the "exported player scene" format instead
+      const imported = importExportedSceneHTML(html);
+      if (!imported) {
+        showToast('No project manifest found in file');
+      }
+      return;
+    }
+    try {
+      const manifest = JSON.parse(manifestMatch[1]);
+      importProjectManifest(manifest);
+      showToast('Imported hotspots from HTML');
+    } catch (err) {
+      console.error(err);
+      showToast('Cannot parse imported HTML');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// IMPORT FROM EXPORTED "PLAYER" SCENE HTML (BOOK_DATA format)
+// ══════════════════════════════════════════════════════════════
+function extractBalancedJSON(str, openIndex) {
+  let depth = 0, inString = false, escape = false;
+  for (let i = openIndex; i < str.length; i++) {
+    const ch = str[i];
+    if (inString) {
+      if (escape) { escape = false; }
+      else if (ch === '\\') { escape = true; }
+      else if (ch === '"') { inString = false; }
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) return str.slice(openIndex, i + 1);
+    }
+  }
+  return null;
+}
+
+function tsConfigToLayerConfig(cfg) {
+  const p = cfg.particles || {};
+  const hasEmitter = !!cfg.emitters;
+  const shadow = p.shadow || {};
+  const wobble = p.wobble || {};
+  const life = p.life || null;
+  return {
+    number: hasEmitter ? 50 : (p.number?.value ?? 50),
+    colors: Array.isArray(p.color?.value) ? p.color.value : (p.color?.value ? [p.color.value] : ['#ffffff']),
+    shape: p.shape?.type || 'circle',
+    sizeMin: p.size?.value?.min ?? 1,
+    sizeMax: p.size?.value?.max ?? 4,
+    opacityMin: p.opacity?.value?.min ?? 0.3,
+    opacityMax: p.opacity?.value?.max ?? 0.9,
+    opacityAnim: !!p.opacity?.animation?.enable,
+    sizeAnim: !!p.size?.animation?.enable,
+    moveEnable: p.move?.enable !== false,
+    speed: p.move?.speed ?? 0.5,
+    direction: p.move?.direction || 'none',
+    twinkle: !!p.twinkle,
+    glow: !!shadow.enable,
+    glowColor: (shadow.color && shadow.color.value) || '#ffffff',
+    glowBlur: shadow.blur ?? 4,
+    outMode: (p.move?.outModes?.default) || 'out',
+    wobble: !!wobble.enable,
+    wobbleDist: wobble.distance || 0,
+    life: !!life,
+    lifeMin: life?.duration?.value?.min || 5,
+    lifeMax: life?.duration?.value?.max || 15,
+    emitter: hasEmitter,
+    emitDelay: cfg.emitters?.rate?.delay || 1.8,
+    emitQty: cfg.emitters?.rate?.quantity || 1
+  };
+}
+
+function importExportedSceneHTML(html) {
+  const bookMatch = /const\s+BOOK_DATA\s*=\s*(\[[\s\S]*?\]);/.exec(html);
+  const layerMatches = [...html.matchAll(/tsParticles\.load\(\s*["']([^"']+)["']\s*,\s*/g)];
+
+  if (!bookMatch && layerMatches.length === 0) {
+    return false; // truly not a recognizable file
+  }
+
+  // --- Hotspots / boxes / borders ---
+  if (bookMatch) {
+    try {
+      const bookData = JSON.parse(bookMatch[1]);
+      importProjectManifest({ hotspots: bookData });
+    } catch (err) {
+      console.error('BOOK_DATA parse failed', err);
+    }
+  }
+
+  // --- Particle layers ---
+  layers.forEach(l => destroyParticles(l.id));
+  layers = [];
+  layerCounter = 0;
+  layerMatches.forEach(m => {
+    const layerId = m[1];
+    const braceStart = html.indexOf('{', m.index + m[0].length);
+    const jsonStr = extractBalancedJSON(html, braceStart);
+    if (!jsonStr) return;
+    try {
+      const cfg = JSON.parse(jsonStr);
+      const numMatch = layerId.match(/(\d+)$/);
+      const num = numMatch ? parseInt(numMatch[1], 10) : (layerCounter + 1);
+      layerCounter = Math.max(layerCounter, num);
+      layers.push({
+        id: layerId,
+        type: 'custom',
+        name: 'Imported Layer ' + num,
+        color: '#888888',
+        visible: true,
+        config: tsConfigToLayerConfig(cfg)
+      });
+    } catch (err) {
+      console.error('Layer config parse failed for', layerId, err);
+    }
+  });
+
+  // --- Background image / color ---
+  const bgColorMatch = /html\s*,\s*body\s*\{[^}]*background:\s*([^;]+);/.exec(html);
+  if (bgColorMatch) bgColor = bgColorMatch[1].trim();
+
+  const bgImageMatch = /#bg\s*\{[^}]*background-image:\s*url\('([^']*)'\)/.exec(html);
+  if (bgImageMatch && bgImageMatch[1] && !bgImageMatch[1].includes('balcony.png')) {
+    bgImage = bgImageMatch[1];
+    document.getElementById('bg-image-layer').style.backgroundImage = `url('${bgImage}')`;
+    document.getElementById('bg-image-layer').style.backgroundSize = bgSize;
+  }
+
+  renderLayerList();
+  layers.forEach(l => renderParticles(l.id));
+  if (layers.length) selectLayer(layers[layers.length - 1].id);
+
+  showToast('Imported scene from HTML');
+  return true;
+}
+
+function importProjectManifest(manifest) {
+  if (!manifest || !Array.isArray(manifest.hotspots)) {
+    showToast('Invalid manifest format');
+    return;
+  }
+
+  HS.hotspots = manifest.hotspots.map(h => ({
+    id: typeof h.id === 'number' ? h.id : HS.nextId++,
+    name: h.name || 'Hotspot ' + (typeof h.id === 'number' ? h.id : HS.hotspots.length + 1),
+    title: h.title || h.name || '',
+    message: h.message || '',
+    color: h.color || 'gold',
+    xPct: Number(h.xPct) || 0,
+    yPct: Number(h.yPct) || 0,
+    wPct: Number(h.wPct) || 0,
+    hPct: Number(h.hPct) || 0,
+    type: h.type || 'book',
+    pCount: h.pCount || 25,
+    pSize: h.pSize || 2.0,
+    pSpeed: h.pSpeed || 1.0,
+    pDir: h.pDir || 'up',
+    hScene: h.hScene || h.pScene || 'both',
+    targetImage: h.targetImage || '',
+    targetImageName: h.targetImageName || ''
+  }));
+
+  const maxId = HS.hotspots.reduce((max, hs) => Math.max(max, hs.id), 0);
+  HS.nextId = Math.max(maxId + 1, manifest.nextId || 1, HS.nextId || 1);
+  HS.selected = null;
+  document.getElementById('hs-editor').style.display = 'none';
+  hsRender();
+}
+
+// ══════════════════════════════════════════════════════════════
+// NARRATIVE SYSTEM
+// ══════════════════════════════════════════════════════════════
+let narrativeItems = [];
+let narrativeNextId = 1;
+let narrativeSelectedId = null;
+
+const NAR_DEFAULTS = {
+  text: 'New sentence...',
+  fontSize: 1.6,
+  speed: 45,
+  color: '#e8bbff',
+  glowColor: '#e8bbff',
+  xPct: 35,
+  yPct: 85,
+  align: 'center',
+  fontFamily: "'Courier New', Courier, monospace"
+};
+
+function narAddItem() {
+  const id = narrativeNextId++;
+  narrativeItems.push({
+    id,
+    text: NAR_DEFAULTS.text,
+    fontSize: NAR_DEFAULTS.fontSize,
+    speed: NAR_DEFAULTS.speed,
+    color: NAR_DEFAULTS.color,
+    glowColor: NAR_DEFAULTS.glowColor,
+    xPct: NAR_DEFAULTS.xPct,
+    yPct: NAR_DEFAULTS.yPct,
+    align: NAR_DEFAULTS.align,
+    fontFamily: NAR_DEFAULTS.fontFamily
+  });
+  narrativeSelectedId = id;
+  narRender();
+  narOpenEditor(id);
+}
+
+function narDeleteSelected() {
+  if (!narrativeSelectedId) return;
+  narrativeItems = narrativeItems.filter(n => n.id !== narrativeSelectedId);
+  narrativeSelectedId = narrativeItems.length ? narrativeItems[narrativeItems.length - 1].id : null;
+  narRender();
+  if (!narrativeSelectedId) document.getElementById('nar-editor').style.display = 'none';
+}
+
+function narUpd(key, val) {
+  if (!narrativeSelectedId) return;
+  const item = narrativeItems.find(n => n.id === narrativeSelectedId);
+  if (!item) return;
+  item[key] = val;
+  if (key === 'text') narRenderList();
+}
+
+function narRender() {
+  if (!narrativeSelectedId) return;
+  const item = narrativeItems.find(n => n.id === narrativeSelectedId);
+  if (!item) return;
+  const preview = document.getElementById('nar-preview');
+  if (!preview) return;
+  preview.style.fontSize = item.fontSize + 'rem';
+  preview.style.color = item.color;
+  preview.style.textShadow = `0 0 8px ${item.glowColor}99`;
+  preview.style.left = item.xPct + '%';
+  preview.style.bottom = (100 - item.yPct) + '%';
+  preview.style.transform = item.align === 'center' ? 'translateX(-50%)' : item.align === 'right' ? 'translateX(-100%)' : 'none';
+  preview.style.textAlign = item.align;
+  preview.style.fontFamily = item.fontFamily;
+  preview.textContent = item.text || '';
+}
+
+function narRenderList() {
+  const list = document.getElementById('nar-list');
+  const countSpan = document.getElementById('nar-count');
+  const noneMsg = document.getElementById('nar-none-msg');
+  countSpan.textContent = narrativeItems.length;
+  if (!narrativeItems.length) {
+    list.innerHTML = '';
+    list.appendChild(noneMsg);
+    noneMsg.style.display = 'block';
+    return;
+  }
+  noneMsg.style.display = 'none';
+  const existing = Array.from(list.querySelectorAll('.nar-item'));
+  narrativeItems.forEach(item => {
+    let el = existing.find(e => +e.dataset.id === item.id);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'nar-item';
+      el.dataset.id = item.id;
+      el.addEventListener('click', () => {
+        narrativeSelectedId = item.id;
+        narRender();
+        narOpenEditor(item.id);
+      });
+      list.appendChild(el);
+    }
+    el.className = 'nar-item' + (narrativeSelectedId === item.id ? ' nar-selected' : '');
+    el.innerHTML = `<div class="nar-item-text">${item.text || '(empty)'}</div><div class="nar-item-sub">${item.fontSize}rem · ${item.speed}ms</div>`;
+  });
+  existing.forEach(el => {
+    if (!narrativeItems.some(n => n.id === +el.dataset.id)) el.remove();
+  });
+}
+
+function narOpenEditor(id) {
+  const item = narrativeItems.find(n => n.id === id);
+  if (!item) return;
+  document.getElementById('nar-editor').style.display = 'block';
+  document.getElementById('nar-f-text').value = item.text;
+  document.getElementById('nar-f-size-val').textContent = item.fontSize;
+  document.getElementById('nar-f-speed-val').textContent = item.speed;
+  document.getElementById('nar-f-color').value = item.color;
+  document.getElementById('nar-f-glow').value = item.glowColor;
+  document.getElementById('nar-f-x-val').textContent = item.xPct;
+  document.getElementById('nar-f-y-val').textContent = item.yPct;
+  document.getElementById('nar-f-align').value = item.align;
+  document.getElementById('nar-f-font').value = item.fontFamily;
+  narRender();
+}
+
+// ══════════════════════════════════════════════════════════════
+// EXPORT HTML
+// ══════════════════════════════════════════════════════════════
+function exportHTML() {
+  const layerConfigs = layers.map(l=>({
+    id:l.id, visible:l.visible, config:buildTsConfig(l)
+  }));
+  const hotspotData = HS.hotspots.map(h => ({
+    id: h.id, name: h.name, title: h.title || h.name,
+    message: h.message || '', color: h.color || 'gold',
+    xPct: h.xPct, yPct: h.yPct, wPct: h.wPct, hPct: h.hPct,
+    type: h.type || 'book',
+    targetImage: h.targetImage || '',
+    targetImageName: h.targetImageName || ''
+  }));
+  const hsZ = layerConfigs.length + 1;
+  
+  const bgStyle = bgImage
+    ? `background-image:url('${bgImage}');background-size:${bgSize};background-position:center center;`
+    : `background-image:url('balcony.png');background-size:${bgSize};background-position:center center;`;
+
+  const hasBorderHotspots = hotspotData.some(h => h.type === 'border');
+  const hotspotHtml = hotspotData.length
+    ? `<div id="hotspots-layer">\n    ${hotspotData.map(h => {
+        const lockedClass = h.type === 'border' && hasBorderHotspots ? ' locked' : '';
+        return `<button type="button" class="book-hotspot hs-${h.color} type-${h.type}${lockedClass}" data-id="${h.id}" style="left:${h.xPct}%;top:${h.yPct}%;width:${h.wPct}%;height:${h.hPct}%;" aria-label="${h.name.replace(/"/g,'"')}"></button>`;
+      }).join('\n    ')}\n    </div>`
+    : '';
+
+  const narFirst = narrativeItems.length > 0 ? narrativeItems[0] : null;
+  const narFontSize = narFirst ? narFirst.fontSize : 1.6;
+  const narXPct = narFirst ? narFirst.xPct : 35;
+  const narYPct = narFirst ? narFirst.yPct : 85;
+  const narColor = narFirst ? narFirst.color : '#e8bbff';
+  const narGlow = narFirst ? narFirst.glowColor : '#e8bbff';
+  const narAlign = narFirst ? narFirst.align : 'center';
+  const narFont = narFirst ? narFirst.fontFamily : "'Courier New', Courier, monospace";
+  const narSpeed = narFirst ? narFirst.speed : 45;
+  const narrativeDataStr = JSON.stringify(narrativeItems);
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Particle Scene</title>
+<script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></` + `script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:${bgColor};}
+
+/* ── PC VIEWPORT CAMERA VIEWFINDER ── */
+#scene-viewfinder {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── UNIFIED BAKED RIG ── */
+#scene-camera-pan {
+  position: absolute;
+  width: 105vw;
+  height: 105vh;
+  top: -2.5vh;
+  left: -2.5vw;
+  transition: transform 0.2s ease-out;
+  will-change: transform;
+}
+
+/* ── INDIVIDUAL COMPONENTS ── */
+#bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-repeat: no-repeat;
+  ${bgStyle}
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+${layerConfigs.map((l,i)=>`#${l.id}{z-index:${i+1};${l.visible?'':'display:none;'}}`).join('\n')}
+
+/* ── TYPEWRITER POSITIONING ── */
+.intro-text-container {
+  position: absolute;
+  bottom: ${100 - narYPct}%;
+  left: ${narXPct}%;
+  transform: translateX(${narAlign === 'center' ? '-50%' : narAlign === 'right' ? '-100%' : '0'});
+  z-index: 100;
+  width: 55%;
+  max-width: 700px;
+  pointer-events: none;
+}
+
+.intro-typewriter-text {
+  font-family: ${narFont};
+  font-size: ${narFontSize}rem;
+  font-weight: bold;
+  display: inline-block;
+  color: ${narColor};
+  text-shadow: 0 0 8px ${narGlow}99;
+  line-height: 1.6;
+  text-align: ${narAlign};
+}
+
+.intro-typewriter-text.typing::after {
+  content: '|';
+  animation: blink 0.8s infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── BOOK HOTSPOTS ── */
+#hotspots-layer {
+  position: absolute;
+  inset: 0;
+  z-index: ${hsZ};
+  pointer-events: none;
+}
+.book-hotspot {
+  position: absolute;
+  pointer-events: auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: box-shadow 0.25s, background 0.25s, border-color 0.25s;
+  padding: 0;
+}
+.book-hotspot:hover { background: rgba(255,255,255,0.04); }
+.book-hotspot.hs-gold:hover   { box-shadow: 0 0 22px rgba(200,160,64,0.65), inset 0 0 14px rgba(200,160,64,0.12); }
+.book-hotspot.hs-purple:hover { box-shadow: 0 0 22px rgba(124,92,191,0.65), inset 0 0 14px rgba(124,92,191,0.12); }
+.book-hotspot.hs-teal:hover   { box-shadow: 0 0 22px rgba(64,192,176,0.65), inset 0 0 14px rgba(64,192,176,0.12); }
+.book-hotspot.hs-rose:hover   { box-shadow: 0 0 22px rgba(192,96,128,0.65), inset 0 0 14px rgba(192,96,128,0.12); }
+
+/* ── LIGHT HOTSPOT: hidden until revealed (20s after border is clicked) ── */
+.book-hotspot.type-bulb {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+.book-hotspot.type-bulb.hs-revealed {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── BORDER TYPE STYLING ── */
+.book-hotspot.type-border {
+  --border-rgb: 255,255,255;
+  border: 2px dashed rgba(255,255,255,0.35);
+  background: rgba(var(--border-rgb), 0.08);
+  border-radius: 3px;
+  box-shadow: 0 0 18px rgba(var(--border-rgb), 0.26), inset 0 0 12px rgba(var(--border-rgb), 0.08);
+  animation: borderHotspotPulse 2.4s ease-in-out infinite;
+}
+.book-hotspot.type-border.locked {
+  pointer-events: none;
+  opacity: 0.3;
+  filter: grayscale(0.6);
+  animation: none;
+  box-shadow: none;
+  cursor: default;
+}
+.book-hotspot.type-border.unlocked {
+  pointer-events: auto;
+  opacity: 1;
+  filter: none;
+  animation: borderHotspotPulse 2.4s ease-in-out infinite;
+}
+.book-hotspot.type-border:hover {
+  background: rgba(var(--border-rgb), 0.12);
+}
+.book-hotspot.type-border.is-activated {
+  animation: none;
+  filter: none;
+  background: rgba(var(--border-rgb), 0.04);
+  box-shadow: 0 0 10px rgba(var(--border-rgb), 0.16), inset 0 0 8px rgba(var(--border-rgb), 0.05);
+}
+.book-hotspot.type-border.hs-gold {
+  --border-rgb: 200,160,64;
+  border-color: #c8a040;
+}
+.book-hotspot.type-border.hs-purple {
+  --border-rgb: 124,92,191;
+  border-color: #7c5cbf;
+}
+.book-hotspot.type-border.hs-teal {
+  --border-rgb: 64,160,144;
+  border-color: #40a090;
+}
+.book-hotspot.type-border.hs-rose {
+  --border-rgb: 192,96,128;
+  border-color: #c06080;
+}
+.book-hotspot.type-border.hs-gold:hover {
+  box-shadow: 0 0 28px rgba(200,160,64,0.6), inset 0 0 16px rgba(200,160,64,0.14);
+}
+.book-hotspot.type-border.hs-purple:hover {
+  box-shadow: 0 0 28px rgba(124,92,191,0.6), inset 0 0 16px rgba(124,92,191,0.14);
+}
+.book-hotspot.type-border.hs-teal:hover {
+  box-shadow: 0 0 28px rgba(64,192,176,0.6), inset 0 0 16px rgba(64,192,176,0.14);
+}
+.book-hotspot.type-border.hs-rose:hover {
+  box-shadow: 0 0 28px rgba(192,96,128,0.6), inset 0 0 16px rgba(192,96,128,0.14);
+}
+@keyframes borderHotspotPulse {
+  0% {
+    transform: translateZ(0) scale(1);
+    filter: brightness(0.95);
+    background: rgba(var(--border-rgb), 0.07);
+    box-shadow: 0 0 16px rgba(var(--border-rgb), 0.28), inset 0 0 10px rgba(var(--border-rgb), 0.06);
+  }
+  50% {
+    transform: translateZ(0) scale(1.02);
+    filter: brightness(1.28);
+    background: rgba(var(--border-rgb), 0.19);
+    box-shadow: 0 0 34px rgba(var(--border-rgb), 0.82), 0 0 68px rgba(var(--border-rgb), 0.34), inset 0 0 24px rgba(var(--border-rgb), 0.22);
+  }
+  100% {
+    transform: translateZ(0) scale(1);
+    filter: brightness(0.95);
+    background: rgba(var(--border-rgb), 0.07);
+    box-shadow: 0 0 16px rgba(var(--border-rgb), 0.28), inset 0 0 10px rgba(var(--border-rgb), 0.06);
+  }
+}
+
+.border-story-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.border-story-modal.open { opacity: 1; pointer-events: auto; }
+#bg-alt {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.55s ease;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: ${bgSize};
+}
+#bg-alt.open { opacity: 1; }
+#bg-alt.has-image {
+  background-color: transparent;
+}
+.border-story-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+#scene-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.7s ease;
+}
+#scene-transition-overlay.active { opacity: 1; }
+.border-story-box {
+  position: relative;
+  z-index: 1;
+  width: min(760px, 90vw);
+  min-height: 380px;
+  padding: 45px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.90);
+  border: 40px solid transparent;
+  border-image-source: url('border1.png');
+  border-image-slice: 120;
+  border-image-repeat: round;
+  animation: borderStoryFloat 8s ease-in-out infinite;
+  transition: background-color 0.5s ease, box-shadow 0.3s ease;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+}
+.border-story-box:hover {
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.05);
+}
+.border-story-text {
+  color: #ffffff;
+  font-family: 'Playfair Display', 'Georgia', serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.8;
+  text-align: center;
+  letter-spacing: 1px;
+  min-height: 70px;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+.border-story-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  margin-left: 5px;
+  box-shadow: 0 0 8px #fff;
+  animation: borderStoryBlink 0.8s infinite alternate;
+}
+.border-story-hint {
+  position: absolute;
+  bottom: 25px;
+  right: 35px;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.border-story-hint.visible { opacity: 1; }
+@keyframes borderStoryFloat {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -18px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+@keyframes borderStoryBlink {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.book-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.book-modal.open { opacity: 1; pointer-events: auto; }
+.book-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(4px);
+}
+.book-panel {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 90vw);
+  max-height: 80vh;
+  padding: 28px 32px 22px;
+  border-radius: 12px;
+  border: 1px solid var(--book-accent, #e0b840);
+  box-shadow: 0 0 40px rgba(0,0,0,0.5), 0 0 24px var(--book-glow, rgba(200,160,64,0.25));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.book-close {
+  position: absolute;
+  top: 10px; right: 14px;
+  background: none;
+  border: none;
+  color: var(--book-accent, #e0b840);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.book-close:hover { opacity: 1; }
+.book-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  color: var(--book-accent, #e0b840);
+  padding-right: 24px;
+  line-height: 1.3;
+}
+.book-page-text {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.95rem;
+  color: #e8e0f0;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-y: auto;
+  flex: 1;
+  max-height: 45vh;
+}
+.book-modal.open { opacity: 1; pointer-events: auto; }
+.book-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.book-page-num { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
+.book-next-btn {
+  background: transparent;
+  border: 1px solid var(--book-accent, #e0b840);
+  color: var(--book-accent, #e0b840);
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+.book-next-btn:hover {
+  background: var(--book-accent, #e0b840);
+  color: #1a1200;
+}
+</style>
+</head>
+<body>
+
+<div id="scene-transition-overlay"></div>
+
+<div id="scene-viewfinder">
+  <div id="scene-camera-pan">
+    
+    <div id="bg"></div>
+    <div id="bg-alt"></div>
+    
+    ${layerConfigs.map(l=>`<div id="${l.id}" class="layer"></div>`).join('\n    ')}
+    
+    ${hotspotHtml}
+    
+    <div class="intro-text-container">
+      <div id="introTextElement" class="intro-typewriter-text"></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="book-modal" class="book-modal">
+  <div class="book-backdrop"></div>
+  <div class="book-panel">
+    <button type="button" class="book-close" aria-label="Close">&times;</button>
+    <h2 class="book-title"></h2>
+    <p id="book-page-text" class="book-page-text"></p>
+    <div class="book-footer">
+      <span id="book-page-num" class="book-page-num"></span>
+      <button type="button" id="book-next-btn" class="book-next-btn">Next page &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<div id="border-story-modal" class="border-story-modal">
+  <div class="border-story-backdrop"></div>
+  <div id="border-story-box" class="border-story-box" role="dialog" aria-modal="true" aria-label="Border story">
+    <div id="border-story-text" class="border-story-text"></div>
+    <div id="border-story-hint" class="border-story-hint">Click to continue</div>
+  </div>
+</div>
+
+<script>
+function startTypewriterSequence(items, callback = null) {
+  const targetElement = document.getElementById('introTextElement');
+  const containerElement = document.querySelector('.intro-text-container');
+  if (!targetElement || !containerElement || !items || items.length === 0) return;
+
+  let currentMsgIndex = 0;
+  let currentCharIndex = 0;
+
+  function applyItemStyle(item) {
+    containerElement.style.bottom = (100 - item.yPct) + '%';
+    containerElement.style.left = item.xPct + '%';
+    containerElement.style.transform = item.align === 'center' ? 'translateX(-50%)' : item.align === 'right' ? 'translateX(-100%)' : 'none';
+    targetElement.style.fontFamily = item.fontFamily;
+    targetElement.style.fontSize = item.fontSize + 'rem';
+    targetElement.style.color = item.color;
+    targetElement.style.textShadow = '0 0 8px ' + item.glowColor + '99';
+    targetElement.style.textAlign = item.align;
+  }
+
+  function typeCurrentLine() {
+    const item = items[currentMsgIndex];
+    applyItemStyle(item);
+    targetElement.textContent = "";
+    targetElement.classList.add('typing');
+    currentCharIndex = 0;
+    
+    const fullText = item.text;
+    
+    function nextChar() {
+      if (currentCharIndex < fullText.length) {
+        targetElement.textContent += fullText.charAt(currentCharIndex);
+        currentCharIndex++;
+        setTimeout(nextChar, item.speed || 45);
+      } else {
+        targetElement.classList.remove('typing');
+        window.addEventListener('click', advanceSequence, { once: true });
+      }
+    }
+    nextChar();
+  }
+
+  function advanceSequence() {
+    currentMsgIndex++;
+    if (currentMsgIndex < items.length) {
+      typeCurrentLine();
+    } else {
+      targetElement.textContent = "";
+      if (typeof callback === 'function') callback();
+    }
+  }
+
+  typeCurrentLine();
+}
+
+window.addEventListener('mousemove', (e) => {
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  const xOffset = (e.clientX - centerX) / centerX;
+  const yOffset = (e.clientY - centerY) / centerY;
+  const maxMoveRange = 20; 
+  const moveX = xOffset * maxMoveRange;
+  const moveY = yOffset * maxMoveRange;
+
+  const cameraRig = document.getElementById('scene-camera-pan');
+  if (cameraRig) {
+    cameraRig.style.transform = \`translate3d(\${-moveX}px, \${-moveY}px, 0)\`;
+  }
+});
+
+  const BOOK_DATA = ${JSON.stringify(hotspotData)};
+  const BOOK_THEMES = ${JSON.stringify(HS_COLORS)};
+
+  let bookPages = [];
+  let bookPageIdx = 0;
+  let borderStoryPages = [];
+  let borderStoryPageIdx = 0;
+  let borderStoryCharIdx = 0;
+  let borderStoryTyping = false;
+  let borderStoryTimeout = null;
+  let activeLightHotspotId = null;
+
+  function getHotspotById(id) {
+    return BOOK_DATA.find(b => b.id === id);
+  }
+
+  function getHotspotPages(message) {
+    return message && message.trim()
+      ? message.split('\\n---next---\\n')
+      : ['This page is blank.'];
+  }
+
+  function openLinkedScene(hotspot) {
+    if (!hotspot || !hotspot.targetImage) return;
+    const layer = document.getElementById('bg-alt');
+    if (!layer) return;
+
+    if (activeLightHotspotId === hotspot.id) {
+      layer.classList.remove('open');
+      activeLightHotspotId = null;
+      return;
+    }
+
+    layer.style.backgroundImage = 'url("' + hotspot.targetImage.replace(/"/g, '"') + '")';
+    layer.classList.add('has-image');
+    layer.classList.add('open');
+    activeLightHotspotId = hotspot.id;
+  }
+
+  function applyBookTheme(color) {
+    const theme = BOOK_THEMES[color] || BOOK_THEMES.gold;
+    const panel = document.querySelector('.book-panel');
+    panel.style.setProperty('--book-accent', theme.accent);
+    panel.style.setProperty('--book-glow', theme.glow);
+    panel.style.background = theme.panel;
+  }
+
+  function renderBookPage() {
+    document.getElementById('book-page-text').textContent = bookPages[bookPageIdx];
+    document.getElementById('book-page-num').textContent = (bookPageIdx + 1) + ' / ' + bookPages.length;
+    document.getElementById('book-next-btn').textContent =
+      bookPageIdx < bookPages.length - 1 ? 'Next page \\u2192' : 'Close book';
+  }
+
+  function openBook(id) {
+    const book = getHotspotById(id);
+    if (!book) return;
+    applyBookTheme(book.color);
+    document.querySelector('.book-title').textContent = book.title || book.name;
+    bookPages = getHotspotPages(book.message);
+    bookPageIdx = 0;
+    renderBookPage();
+    document.getElementById('book-modal').classList.add('open');
+  }
+
+  function closeBook() {
+    document.getElementById('book-modal').classList.remove('open');
+  }
+
+  function clearBorderStoryTyping() {
+    if (borderStoryTimeout) {
+      clearTimeout(borderStoryTimeout);
+      borderStoryTimeout = null;
+    }
+  }
+
+  function renderBorderStoryText(text, showCursor = false) {
+    const textEl = document.getElementById('border-story-text');
+    textEl.textContent = text;
+    if (showCursor) {
+      const cursor = document.createElement('span');
+      cursor.className = 'border-story-cursor';
+      textEl.appendChild(cursor);
+    }
+  }
+
+  function typeBorderStoryPage() {
+    const fullText = borderStoryPages[borderStoryPageIdx] || '';
+    const hint = document.getElementById('border-story-hint');
+    borderStoryTyping = true;
+    hint.classList.remove('visible');
+    renderBorderStoryText('');
+    borderStoryCharIdx = 0;
+
+    function nextChar() {
+      if (borderStoryCharIdx < fullText.length) {
+        renderBorderStoryText(fullText.substring(0, borderStoryCharIdx + 1), true);
+        borderStoryCharIdx++;
+        borderStoryTimeout = setTimeout(nextChar, 55);
+      } else {
+        clearBorderStoryTyping();
+        borderStoryTyping = false;
+        renderBorderStoryText(fullText, borderStoryPageIdx < borderStoryPages.length - 1);
+        hint.textContent = borderStoryPageIdx < borderStoryPages.length - 1 ? 'Click to continue' : 'Close frame';
+        hint.classList.add('visible');
+      }
+    }
+
+    nextChar();
+  }
+
+  function closeBorderStory() {
+    clearBorderStoryTyping();
+    borderStoryTyping = false;
+    document.getElementById('border-story-hint').classList.remove('visible');
+    document.getElementById('border-story-modal').classList.remove('open');
+  }
+
+  function openBorderStory(id) {
+    const book = getHotspotById(id);
+    if (!book) return;
+    closeBook();
+    const trigger = document.querySelector('.book-hotspot[data-id="' + id + '"]');
+    if (trigger) trigger.classList.add('is-activated');
+    borderStoryPages = getHotspotPages(book.message);
+    borderStoryPageIdx = 0;
+    document.getElementById('border-story-modal').classList.add('open');
+    typeBorderStoryPage();
+  }
+
+  function nextBorderStoryPage() {
+    const fullText = borderStoryPages[borderStoryPageIdx] || '';
+    if (borderStoryTyping) {
+      clearBorderStoryTyping();
+      borderStoryTyping = false;
+      renderBorderStoryText(fullText, borderStoryPageIdx < borderStoryPages.length - 1);
+      const hint = document.getElementById('border-story-hint');
+      hint.textContent = borderStoryPageIdx < borderStoryPages.length - 1 ? 'Click to continue' : 'Close frame';
+      hint.classList.add('visible');
+      return;
+    }
+
+    if (borderStoryPageIdx < borderStoryPages.length - 1) {
+      borderStoryPageIdx++;
+      typeBorderStoryPage();
+    } else {
+      closeBorderStory();
+    }
+  }
+
+  function advanceBook() {
+    if (bookPageIdx < bookPages.length - 1) {
+      bookPageIdx++;
+      renderBookPage();
+    } else {
+      closeBook();
+    }
+  }
+
+  let lightRevealTriggered = false;
+  function revealLightHotspots() {
+    document.querySelectorAll('.book-hotspot.type-bulb').forEach(b => b.classList.add('hs-revealed'));
+  }
+  document.querySelectorAll('.book-hotspot').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const hotspot = getHotspotById(+btn.dataset.id);
+      if (!hotspot) return;
+      if (hotspot.type === 'bulb') {
+        const overlay = document.getElementById('scene-transition-overlay');
+        overlay.classList.add('active');
+        setTimeout(() => { window.location.href = 'test.html'; }, 700);
+        return;
+      }
+      if (hotspot.type === 'border') {
+        openBorderStory(hotspot.id);
+        if (!lightRevealTriggered) {
+          lightRevealTriggered = true;
+          setTimeout(revealLightHotspots, 20000);
+        }
+      }
+      else openBook(hotspot.id);
+    });
+  });
+  document.querySelector('.book-close').addEventListener('click', closeBook);
+  document.querySelector('.book-backdrop').addEventListener('click', closeBook);
+  document.getElementById('book-next-btn').addEventListener('click', advanceBook);
+  document.getElementById('border-story-box').addEventListener('click', nextBorderStoryPage);
+  document.querySelector('.border-story-backdrop').addEventListener('click', closeBorderStory);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeBook();
+      closeBorderStory();
+    }
+  });
+
+  (async()=>{
+${layerConfigs.map(l=>`  await tsParticles.load("${l.id}", ${JSON.stringify(l.config, null, 2)});`).join('\n')}
+
+  const narrativeItems_export = ${narrativeDataStr};
+
+  startTypewriterSequence(narrativeItems_export, () => {
+    unlockBorderHotspots();
+  });
+})();
+
+function unlockBorderHotspots() {
+  document.querySelectorAll('.book-hotspot.type-border.locked').forEach(btn => {
+    btn.classList.remove('locked');
+    btn.classList.add('unlocked');
+  });
+}
+</` + `script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'particle-scene.html';
+  a.click();
+  
+  showToast('HTML downloaded!');
+}
+
+// ══════════════════════════════════════════════════════════════
+// HOTSPOT SYSTEM (📖 Book hotspots — draw / drag / resize)
+// ══════════════════════════════════════════════════════════════
+let hsIsDrawing = false;
+let hsDrawStart = { x: 0, y: 0 };
+let hsTabActive = false;
+
+const hsOverlay   = document.getElementById('hs-overlay');
+const hsDrawSel   = document.getElementById('hs-draw-sel');
+const previewEl   = document.getElementById('preview');
+
+function hsGetPos(e) {
+  const r = previewEl.getBoundingClientRect();
+  const point = e.touches?.[0] || e.changedTouches?.[0] || e;
+  const cx = point.clientX;
+  const cy = point.clientY;
+  return {
+    x: Math.max(0, Math.min(cx - r.left, r.width)),
+    y: Math.max(0, Math.min(cy - r.top,  r.height))
+  };
+}
+function hsPct(px, dim) { return (px / dim) * 100; }
+function hsPx(p, dim)   { return (p / 100) * dim; }
+
+function hsResetInteraction() {
+  hsIsDrawing = false;
+  hsIsDragging = false;
+  hsIsResizing = false;
+  hsDragTarget = null;
+  hsResizeTarget = null;
+}
+
+hsOverlay.addEventListener('pointerdown', e => {
+  if (!hsTabActive) return;
+  if (e.button !== 0) return;
+  if (e.target.classList.contains('ps-resize-handle')) return;
+  if (e.target.classList.contains('ps-hotspot-box') || e.target.closest('.ps-hotspot-box')) return;
+  e.preventDefault();
+  hsResetInteraction();
+  hsIsDrawing = true;
+  hsDrawStart = hsGetPos(e);
+  hsDrawSel.style.cssText = `display:block;left:${hsDrawStart.x}px;top:${hsDrawStart.y}px;width:0;height:0;`;
+});
+
+document.addEventListener('pointermove', e => {
+  if (hsIsDrawing) {
+    const p = hsGetPos(e);
+    const x = Math.min(p.x, hsDrawStart.x);
+    const y = Math.min(p.y, hsDrawStart.y);
+    const w = Math.abs(p.x - hsDrawStart.x);
+    const h = Math.abs(p.y - hsDrawStart.y);
+    hsDrawSel.style.left   = x + 'px';
+    hsDrawSel.style.top    = y + 'px';
+    hsDrawSel.style.width  = w + 'px';
+    hsDrawSel.style.height = h + 'px';
+    return;
+  }
+  if (hsIsDragging && hsDragTarget) {
+    const p = hsGetPos(e);
+    const dx = p.x - hsDragStartMouse.x;
+    const dy = p.y - hsDragStartMouse.y;
+    const rw = previewEl.offsetWidth;
+    const rh = previewEl.offsetHeight;
+    
+    let newX = hsPx(hsDragStartBox.x, rw) + dx;
+    let newY = hsPx(hsDragStartBox.y, rh) + dy;
+    
+    hsDragTarget.xPct = Math.max(0, Math.min(100 - hsDragTarget.wPct, hsPct(newX, rw)));
+    hsDragTarget.yPct = Math.max(0, Math.min(100 - hsDragTarget.hPct, hsPct(newY, rh)));
+    
+    hsRender();
+    return;
+  }
+  if (hsIsResizing && hsResizeTarget) {
+    const p = hsGetPos(e);
+    const rw = previewEl.offsetWidth;
+    const rh = previewEl.offsetHeight;
+    const startX = hsPx(hsResizeTarget.xPct, rw);
+    const startY = hsPx(hsResizeTarget.yPct, rh);
+    
+    let newW = p.x - startX;
+    let newH = p.y - startY;
+    
+    hsResizeTarget.wPct = Math.max(1.5, Math.min(100 - hsResizeTarget.xPct, hsPct(newW, rw)));
+    hsResizeTarget.hPct = Math.max(1.5, Math.min(100 - hsResizeTarget.yPct, hsPct(newH, rh)));
+    
+    hsRender();
+    return;
+  }
+});
+
+function hsFinishInteraction() {
+  if (hsIsDrawing) {
+    const rw = previewEl.offsetWidth;
+    const rh = previewEl.offsetHeight;
+    const w = parseFloat(hsDrawSel.style.width) || 0;
+    const h = parseFloat(hsDrawSel.style.height) || 0;
+    const x = parseFloat(hsDrawSel.style.left) || 0;
+    const y = parseFloat(hsDrawSel.style.top) || 0;
+    hsDrawSel.style.display = 'none';
+    if (w > 8 && h > 8) {
+      const id = HS.nextId++;
+      const hs = {
+        id,
+        name: 'Hotspot ' + id,
+        title: '',
+        message: '',
+        color: 'gold',
+        xPct: hsPct(x, rw),
+        yPct: hsPct(y, rh),
+        wPct: hsPct(w, rw),
+        hPct: hsPct(h, rh),
+        type: 'book'
+      };
+      HS.hotspots.push(hs);
+      HS.selected = hs.id;
+      hsRender();
+      hsOpenEditor(hs);
+    }
+  }
+  hsResetInteraction();
+}
+
+document.addEventListener('pointerup', hsFinishInteraction);
+document.addEventListener('pointercancel', hsFinishInteraction);
+
+let hsIsDragging = false, hsIsResizing = false;
+let hsDragTarget = null, hsResizeTarget = null;
+let hsDragStartMouse = { x: 0, y: 0 }, hsDragStartBox = { x: 0, y: 0 };
+
+function hsRender() {
+  hsOverlay.querySelectorAll('.ps-hotspot-box').forEach(el => el.remove());
+  const rw = previewEl.offsetWidth;
+  const rh = previewEl.offsetHeight;
+
+  HS.hotspots.forEach(hs => {
+    const selected = hs.id === HS.selected;
+    const box = document.createElement('div');
+    box.className = 'ps-hotspot-box' + (hs.type === 'border' ? ' type-border' : '') + (selected ? ' ps-selected' : '');
+    box.dataset.id = hs.id;
+    
+    const theme = hsGetTheme(hs.color);
+    box.style.left   = hsPx(hs.xPct, rw) + 'px';
+    box.style.top    = hsPx(hs.yPct, rh) + 'px';
+    box.style.width  = hsPx(hs.wPct, rw) + 'px';
+    box.style.height = hsPx(hs.hPct, rh) + 'px';
+    box.style.borderColor = selected ? (theme.borderHi || theme.border) : theme.border;
+    if (hs.type !== 'border') {
+      box.style.background = selected ? theme.bgSel : theme.bg;
+      box.style.borderStyle = 'dashed';
+    } else {
+      box.style.background = 'transparent';
+      box.style.borderStyle = selected ? 'solid' : 'dashed';
+    }
+
+    if (hs.type !== 'border') {
+      const icon = hs.type === 'bulb' ? '💡' : hs.type === 'particles' ? '✨' : '📖';
+      const label = document.createElement('div');
+      label.className = 'ps-hs-label';
+      label.style.color = theme.label;
+      label.innerHTML = `${icon} ${hs.name || 'Untitled'}`;
+      box.appendChild(label);
+    }
+
+    const handle = document.createElement('div');
+    handle.className = 'ps-resize-handle';
+    handle.style.background = theme.border;
+    handle.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      e.preventDefault();
+      hsResetInteraction();
+      hsIsResizing = true;
+      hsResizeTarget = hs;
+    });
+    box.appendChild(handle);
+
+    box.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      if (e.target.classList.contains('ps-resize-handle')) return;
+      e.stopPropagation();
+      e.preventDefault();
+      HS.selected = hs.id;
+      hsRender();
+      hsOpenEditor(hs);
+      
+      hsResetInteraction();
+      hsIsDragging = true;
+      hsDragTarget = hs;
+      hsDragStartMouse = hsGetPos(e);
+      hsDragStartBox = { x: hs.xPct, y: hs.yPct };
+    });
+
+    hsOverlay.appendChild(box);
+  });
+
+  hsRenderList();
+}
+
+function hsRenderList() {
+  const list = document.getElementById('hs-list-ps');
+  const countSpan = document.getElementById('hs-count-ps');
+  const noneMsg = document.getElementById('hs-none-msg');
+  
+  countSpan.textContent = HS.hotspots.length;
+  if (!HS.hotspots.length) {
+    noneMsg.style.display = 'block';
+    list.querySelectorAll('.ps-hs-item').forEach(el => el.remove());
+    return;
+  }
+  noneMsg.style.display = 'none';
+  
+  const existingItems = Array.from(list.querySelectorAll('.ps-hs-item'));
+  HS.hotspots.forEach(hs => {
+    let item = existingItems.find(el => +el.dataset.id === hs.id);
+    if (!item) {
+      item = document.createElement('div');
+      item.className = 'ps-hs-item';
+      item.dataset.id = hs.id;
+      item.addEventListener('click', () => {
+        HS.selected = hs.id;
+        hsRender();
+        hsOpenEditor(hs);
+      });
+      list.appendChild(item);
+    }
+    
+    item.className = 'ps-hs-item' + (HS.selected === hs.id ? ' ps-hs-selected' : '');
+    const icon = hs.type === 'bulb' ? '💡' : hs.type === 'particles' ? '✨' : hs.type === 'border' ? '🔲' : '📖';
+    item.innerHTML = `
+      <div class="ps-hs-item-name">${icon} ${hs.name || 'Hotspot'}</div>
+      <div class="ps-hs-item-sub">${hs.type.toUpperCase()} • ${hs.color.toUpperCase()} (${Math.round(hs.xPct)}%, ${Math.round(hs.yPct)}%)</div>
+    `;
+  });
+
+  existingItems.forEach(el => {
+    if (!HS.hotspots.some(hs => hs.id === +el.dataset.id)) el.remove();
+  });
+}
+
+function hsOpenEditor(hs) {
+  document.getElementById('hs-editor').style.display = 'block';
+  document.getElementById('hs-f-name').value = hs.name || '';
+  document.getElementById('hs-f-type').value = hs.type || 'book';
+  document.getElementById('hs-f-title').value = hs.title || '';
+  document.getElementById('hs-f-msg').value = hs.message || '';
+  document.getElementById('hs-f-color').value = hs.color || 'gold';
+  hsRefreshTypeFields(hs);
+}
+
+function hsRefreshTypeFields(hs) {
+  const lightField = document.getElementById('hs-light-scene-field');
+  const isBulb = hs?.type === 'bulb';
+  if (lightField) lightField.style.display = isBulb ? 'block' : 'none';
+}
+
+function hsTypeChanged(val) {
+  hsUpd('type', val);
+  const hs = HS.hotspots.find(h => h.id === HS.selected);
+  hsRefreshTypeFields(hs);
+}
+
+function hsUpd(key, val) {
+  if (!HS.selected) return;
+  const hs = HS.hotspots.find(h => h.id === HS.selected);
+  if (!hs) return;
+  hs[key] = val;
+  
+  const labelEl = document.querySelector(`.ps-hotspot-box[data-id="${hs.id}"] .ps-hs-label`);
+  if (labelEl) {
+    const icon = hs.type === 'bulb' ? '💡' : hs.type === 'particles' ? '✨' : hs.type === 'border' ? '🔲' : '📖';
+    labelEl.innerHTML = `${icon} ${hs.name || 'Untitled'}`;
+  }
+  
+  if (key === 'color' || key === 'type') hsRender();
+  else hsRenderList();
+}
+
+function hsDeleteSelected() {
+  if (!HS.selected) return;
+  HS.hotspots = HS.hotspots.filter(h => h.id !== HS.selected);
+  HS.selected = null;
+  document.getElementById('hs-editor').style.display = 'none';
+  hsRender();
+}
+
+function hsInsertPageBreak() {
+  const ta = document.getElementById('hs-f-msg');
+  if (!ta) return;
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const text = ta.value;
+  const breakStr = "\n---next---\n";
+  ta.value = text.substring(0, start) + breakStr + text.substring(end);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = start + breakStr.length;
+  hsUpd('message', ta.value);
+}
+
+document.addEventListener('keydown', e => {
+  if (!hsTabActive || !HS.selected) return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault();
+    hsDeleteSelected();
+  }
+});
+</script>
+</body>
+</html>

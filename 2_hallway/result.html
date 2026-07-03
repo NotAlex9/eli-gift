@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production Story Timeline Sequence</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f0f14; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+    .scene-container { position: relative; width: 1140px; height: 500px; background: url('background.png') no-repeat center/cover; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8); overflow: hidden; }
+    .actor { position: absolute; transform-origin: center center; }
+    .actor img { width: 100%; height: 100%; object-fit: contain; }
+
+    .fade-out {
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+    }
+    #transition {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 999999;
+      transition: opacity 1.5s ease-in-out; /* ← change this */
+    }
+    .element img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    }
+    .speech-bubble {
+      position: absolute;
+      width: 340px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(16, 16, 28, 0.95) 0%, rgba(8, 8, 14, 0.98) 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 2px solid transparent;
+      border-image: linear-gradient(to bottom right, #a5a5ff, #4e4eff, rgba(15, 15, 20, 0)) 1;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 20px rgba(78, 78, 255, 0.15);
+      opacity: 0;
+      visibility: hidden;
+      z-index: 50;
+    }
+    .speech-bubble-arrow { position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%) rotate(45deg); width: 16px; height: 16px; background: #08080e; border-right: 2px solid #5757cf; border-bottom: 2px solid #5757cf; animation: bubbleFloat 2s ease-in-out infinite; }
+    @keyframes bubbleFloat { 0%, 100% { transform: translateX(-50%) rotate(45deg) translate(0, 0); } 50% { transform: translateX(-50%) rotate(45deg) translate(2px, 2px); } }
+    .dialogue-text { font-family: 'Georgia', serif; font-size: 1rem; font-style: italic; color: #e2e2ff; line-height: 1.5; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); word-wrap: break-word; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+<div id="transition"></div>
+
+  <div class="scene-container">
+    <div id="colombina" class="actor"><img src="colombina.png" alt="Colombina"></div>
+    <div id="master-bubble" class="speech-bubble">
+      <div id="dialogue-text" class="dialogue-text"></div>
+      <div class="speech-bubble-arrow"></div>
+    </div>
+    <div id="pusheen" class="actor"><img src="pusheen1.png" alt="Pusheen"></div>
+    <div id="ghost" class="actor"><img src="ghost.png" alt="Ghost"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script>
+    // Each entry is an independent scene-animator take.
+    const scenesData = [{"scene":1,"act":{"pusheen":[{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"664px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"665px","top":"357px","width":"80px","height":"80px","opacity":"1"},{"left":"672px","top":"358px","width":"80px","height":"80px","opacity":"1"},{"left":"675px","top":"359px","width":"80px","height":"80px","opacity":"1"},{"left":"659px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"656px","top":"355px","width":"80px","height":"80px","opacity":"1"},{"left":"660px","top":"355px","width":"80px","height":"80px","opacity":"1"},{"left":"651px","top":"353px","width":"80px","height":"80px","opacity":"1"},{"left":"639px","top":"357px","width":"80px","height":"80px","opacity":"1"},{"left":"649px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"642px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"641px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"625px","top":"361px","width":"80px","height":"80px","opacity":"1"},{"left":"592px","top":"370px","width":"80px","height":"80px","opacity":"1"},{"left":"602px","top":"371px","width":"80px","height":"80px","opacity":"1"},{"left":"603px","top":"371px","width":"80px","height":"80px","opacity":"1"},{"left":"580px","top":"372px","width":"80px","height":"80px","opacity":"1"},{"left":"598px","top":"364px","width":"80px","height":"80px","opacity":"1"},{"left":"595px","top":"363px","width":"80px","height":"80px","opacity":"1"},{"left":"580px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"580px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"557px","top":"363px","width":"80px","height":"80px","opacity":"1"},{"left":"525px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"527px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"528px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"504px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"498px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"475px","top":"357px","width":"80px","height":"80px","opacity":"1"},{"left":"406px","top":"353px","width":"80px","height":"80px","opacity":"1"},{"left":"406px","top":"352px","width":"80px","height":"80px","opacity":"1"},{"left":"407px","top":"352px","width":"80px","height":"80px","opacity":"1"},{"left":"407px","top":"352px","width":"80px","height":"80px","opacity":"1"},{"left":"413px","top":"352px","width":"80px","height":"80px","opacity":"1"},{"left":"412px","top":"352px","width":"80px","height":"80px","opacity":"1"},{"left":"412px","top":"352px","width":"80px","height":"80px","opacity":"1"},{"left":"435px","top":"348px","width":"80px","height":"80px","opacity":"1"},{"left":"399px","top":"352px","width":"80px","height":"80px","opacity":"1"},{"left":"363px","top":"353px","width":"80px","height":"80px","opacity":"1"},{"left":"372px","top":"353px","width":"80px","height":"80px","opacity":"1"},{"left":"378px","top":"351px","width":"80px","height":"80px","opacity":"1"},{"left":"359px","top":"354px","width":"80px","height":"80px","opacity":"1"},{"left":"338px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"333px","top":"356px","width":"80px","height":"80px","opacity":"1"},{"left":"285px","top":"359px","width":"80px","height":"80px","opacity":"1"},{"left":"282px","top":"359px","width":"80px","height":"80px","opacity":"1"},{"left":"282px","top":"358px","width":"80px","height":"80px","opacity":"1"},{"left":"256px","top":"357px","width":"80px","height":"80px","opacity":"1"},{"left":"249px","top":"357px","width":"80px","height":"80px","opacity":"1"},{"left":"248px","top":"357px","width":"80px","height":"80px","opacity":"1"},{"left":"244px","top":"357px","width":"80px","height":"80px","opacity":"1"},{"left":"198px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"185px","top":"361px","width":"80px","height":"80px","opacity":"1"},{"left":"185px","top":"361px","width":"80px","height":"80px","opacity":"1"},{"left":"164px","top":"362px","width":"80px","height":"80px","opacity":"1"},{"left":"161px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"156px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"112px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"112px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"},{"left":"111px","top":"360px","width":"80px","height":"80px","opacity":"1"}],"ghost":[{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"928px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"929px","top":"276px","width":"220px","height":"220px","opacity":"1"},{"left":"930px","top":"275px","width":"220px","height":"220px","opacity":"1"},{"left":"932px","top":"273px","width":"220px","height":"220px","opacity":"1"},{"left":"935px","top":"264px","width":"220px","height":"220px","opacity":"1"},{"left":"932px","top":"249px","width":"220px","height":"220px","opacity":"1"},{"left":"914px","top":"229px","width":"220px","height":"220px","opacity":"1"},{"left":"893px","top":"226px","width":"220px","height":"220px","opacity":"1"},{"left":"869px","top":"237px","width":"220px","height":"220px","opacity":"1"},{"left":"857px","top":"245px","width":"220px","height":"220px","opacity":"1"},{"left":"858px","top":"248px","width":"220px","height":"220px","opacity":"1"},{"left":"869px","top":"252px","width":"220px","height":"220px","opacity":"1"},{"left":"873px","top":"254px","width":"220px","height":"220px","opacity":"1"},{"left":"869px","top":"243px","width":"220px","height":"220px","opacity":"1"},{"left":"834px","top":"218px","width":"220px","height":"220px","opacity":"1"},{"left":"787px","top":"210px","width":"220px","height":"220px","opacity":"1"},{"left":"762px","top":"220px","width":"220px","height":"220px","opacity":"1"},{"left":"750px","top":"238px","width":"220px","height":"220px","opacity":"1"},{"left":"749px","top":"254px","width":"220px","height":"220px","opacity":"1"},{"left":"755px","top":"256px","width":"220px","height":"220px","opacity":"1"},{"left":"761px","top":"258px","width":"220px","height":"220px","opacity":"1"},{"left":"765px","top":"243px","width":"220px","height":"220px","opacity":"1"},{"left":"740px","top":"222px","width":"220px","height":"220px","opacity":"1"},{"left":"717px","top":"219px","width":"220px","height":"220px","opacity":"1"},{"left":"706px","top":"226px","width":"220px","height":"220px","opacity":"1"},{"left":"696px","top":"240px","width":"220px","height":"220px","opacity":"1"},{"left":"691px","top":"255px","width":"220px","height":"220px","opacity":"1"},{"left":"692px","top":"264px","width":"220px","height":"220px","opacity":"1"},{"left":"698px","top":"265px","width":"220px","height":"220px","opacity":"1"},{"left":"701px","top":"255px","width":"220px","height":"220px","opacity":"1"},{"left":"695px","top":"235px","width":"220px","height":"220px","opacity":"1"},{"left":"661px","top":"223px","width":"220px","height":"220px","opacity":"1"},{"left":"602px","top":"226px","width":"220px","height":"220px","opacity":"1"},{"left":"566px","top":"243px","width":"220px","height":"220px","opacity":"1"},{"left":"560px","top":"253px","width":"220px","height":"220px","opacity":"1"},{"left":"567px","top":"257px","width":"220px","height":"220px","opacity":"1"},{"left":"573px","top":"260px","width":"220px","height":"220px","opacity":"1"},{"left":"574px","top":"260px","width":"220px","height":"220px","opacity":"1"},{"left":"570px","top":"239px","width":"220px","height":"220px","opacity":"1"},{"left":"554px","top":"229px","width":"220px","height":"220px","opacity":"1"},{"left":"530px","top":"226px","width":"220px","height":"220px","opacity":"1"},{"left":"507px","top":"236px","width":"220px","height":"220px","opacity":"1"},{"left":"486px","top":"249px","width":"220px","height":"220px","opacity":"1"},{"left":"481px","top":"256px","width":"220px","height":"220px","opacity":"1"},{"left":"481px","top":"262px","width":"220px","height":"220px","opacity":"1"},{"left":"488px","top":"264px","width":"220px","height":"220px","opacity":"1"},{"left":"492px","top":"264px","width":"220px","height":"220px","opacity":"1"},{"left":"491px","top":"245px","width":"220px","height":"220px","opacity":"1"},{"left":"477px","top":"231px","width":"220px","height":"220px","opacity":"1"},{"left":"455px","top":"232px","width":"220px","height":"220px","opacity":"1"},{"left":"432px","top":"250px","width":"220px","height":"220px","opacity":"1"},{"left":"416px","top":"273px","width":"220px","height":"220px","opacity":"1"},{"left":"412px","top":"280px","width":"220px","height":"220px","opacity":"1"},{"left":"411px","top":"280px","width":"220px","height":"220px","opacity":"1"},{"left":"411px","top":"280px","width":"220px","height":"220px","opacity":"1"},{"left":"411px","top":"280px","width":"220px","height":"220px","opacity":"1"},{"left":"411px","top":"280px","width":"220px","height":"220px","opacity":"1"},{"left":"411px","top":"280px","width":"220px","height":"220px","opacity":"1"},{"left":"411px","top":"280px","width":"220px","height":"220px","opacity":"1"},{"left":"411px","top":"280px","width":"220px","height":"220px","opacity":"1"}],"colombina":[]}},{"scene":2,"act":{"pusheen":[],"ghost":[{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"450px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"453px","top":"291px","width":"220px","height":"220px","opacity":"1"},{"left":"467px","top":"293px","width":"220px","height":"220px","opacity":"1"},{"left":"502px","top":"293px","width":"220px","height":"220px","opacity":"1"},{"left":"510px","top":"292px","width":"220px","height":"220px","opacity":"1"},{"left":"498px","top":"293px","width":"220px","height":"220px","opacity":"1"},{"left":"494px","top":"294px","width":"220px","height":"220px","opacity":"1"},{"left":"494px","top":"294px","width":"220px","height":"220px","opacity":"1"},{"left":"488px","top":"293px","width":"220px","height":"220px","opacity":"1"},{"left":"485px","top":"294px","width":"220px","height":"220px","opacity":"1"},{"left":"485px","top":"294px","width":"220px","height":"220px","opacity":"1"},{"left":"448px","top":"306px","width":"220px","height":"220px","opacity":"1"},{"left":"464px","top":"303px","width":"220px","height":"220px","opacity":"1"},{"left":"480px","top":"297px","width":"220px","height":"220px","opacity":"1"},{"left":"474px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"480px","top":"293px","width":"220px","height":"220px","opacity":"1"},{"left":"477px","top":"292px","width":"220px","height":"220px","opacity":"1"},{"left":"471px","top":"292px","width":"220px","height":"220px","opacity":"1"},{"left":"498px","top":"291px","width":"220px","height":"220px","opacity":"1"},{"left":"510px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"509px","top":"290px","width":"220px","height":"220px","opacity":"1"},{"left":"534px","top":"292px","width":"220px","height":"220px","opacity":"1"},{"left":"561px","top":"291px","width":"220px","height":"220px","opacity":"1"},{"left":"533px","top":"301px","width":"220px","height":"220px","opacity":"1"},{"left":"529px","top":"302px","width":"220px","height":"220px","opacity":"1"},{"left":"525px","top":"302px","width":"220px","height":"220px","opacity":"1"},{"left":"522px","top":"302px","width":"220px","height":"220px","opacity":"1"},{"left":"522px","top":"302px","width":"220px","height":"220px","opacity":"1"},{"left":"508px","top":"303px","width":"220px","height":"220px","opacity":"1"},{"left":"494px","top":"302px","width":"220px","height":"220px","opacity":"1"},{"left":"490px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"473px","top":"298px","width":"220px","height":"220px","opacity":"1"},{"left":"472px","top":"297px","width":"220px","height":"220px","opacity":"1"},{"left":"472px","top":"297px","width":"220px","height":"220px","opacity":"1"},{"left":"472px","top":"297px","width":"220px","height":"220px","opacity":"1"},{"left":"468px","top":"297px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"},{"left":"457px","top":"299px","width":"220px","height":"220px","opacity":"1"}],"colombina":[{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.2"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.2"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.2"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.3"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.4"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.5"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.6"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.7"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.8"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"0.9"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"101px","top":"260px","width":"381px","height":"236px","opacity":"1"},{"left":"102px","top":"262px","width":"381px","height":"236px","opacity":"1"},{"left":"151px","top":"269px","width":"381px","height":"236px","opacity":"1"},{"left":"171px","top":"269px","width":"381px","height":"236px","opacity":"1"},{"left":"132px","top":"275px","width":"381px","height":"236px","opacity":"1"},{"left":"156px","top":"277px","width":"381px","height":"236px","opacity":"1"},{"left":"178px","top":"268px","width":"381px","height":"236px","opacity":"1"},{"left":"127px","top":"271px","width":"381px","height":"236px","opacity":"1"},{"left":"129px","top":"271px","width":"381px","height":"236px","opacity":"1"},{"left":"143px","top":"263px","width":"381px","height":"236px","opacity":"1"},{"left":"107px","top":"264px","width":"381px","height":"236px","opacity":"1"},{"left":"148px","top":"259px","width":"381px","height":"236px","opacity":"1"},{"left":"140px","top":"255px","width":"381px","height":"236px","opacity":"1"},{"left":"113px","top":"251px","width":"381px","height":"236px","opacity":"1"},{"left":"129px","top":"244px","width":"381px","height":"236px","opacity":"1"},{"left":"93px","top":"245px","width":"381px","height":"236px","opacity":"1"},{"left":"103px","top":"236px","width":"381px","height":"236px","opacity":"1"},{"left":"132px","top":"227px","width":"381px","height":"236px","opacity":"1"},{"left":"84px","top":"238px","width":"381px","height":"236px","opacity":"1"},{"left":"111px","top":"238px","width":"381px","height":"236px","opacity":"1"},{"left":"140px","top":"242px","width":"381px","height":"236px","opacity":"1"},{"left":"113px","top":"249px","width":"381px","height":"236px","opacity":"1"},{"left":"147px","top":"241px","width":"381px","height":"236px","opacity":"1"},{"left":"145px","top":"236px","width":"381px","height":"236px","opacity":"1"},{"left":"127px","top":"239px","width":"381px","height":"236px","opacity":"1"},{"left":"141px","top":"240px","width":"381px","height":"236px","opacity":"1"},{"left":"123px","top":"251px","width":"381px","height":"236px","opacity":"1"},{"left":"131px","top":"253px","width":"381px","height":"236px","opacity":"1"},{"left":"150px","top":"247px","width":"381px","height":"236px","opacity":"1"},{"left":"145px","top":"247px","width":"381px","height":"236px","opacity":"1"},{"left":"151px","top":"243px","width":"381px","height":"236px","opacity":"1"},{"left":"144px","top":"245px","width":"381px","height":"236px","opacity":"1"},{"left":"140px","top":"248px","width":"381px","height":"236px","opacity":"1"},{"left":"165px","top":"245px","width":"381px","height":"236px","opacity":"1"},{"left":"148px","top":"251px","width":"381px","height":"236px","opacity":"1"},{"left":"126px","top":"253px","width":"381px","height":"236px","opacity":"1"},{"left":"149px","top":"250px","width":"381px","height":"236px","opacity":"1"},{"left":"132px","top":"253px","width":"381px","height":"236px","opacity":"1"},{"left":"123px","top":"250px","width":"381px","height":"236px","opacity":"1"},{"left":"123px","top":"250px","width":"381px","height":"236px","opacity":"1"},{"left":"123px","top":"250px","width":"381px","height":"236px","opacity":"1"},{"left":"123px","top":"250px","width":"381px","height":"236px","opacity":"1"}]}},{"scene":3,"act":{"pusheen":[],"ghost":[{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.9"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.9"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.9"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.8"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.8"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.8"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.8"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.7"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.6"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.6"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.5"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.4"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.3"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.3"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.2"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0.1"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"},{"left":"466px","top":"296px","width":"220px","height":"220px","opacity":"0"}],"colombina":[]}}];
+    // Dialogue steps keyed per scene number; each scene's lines only
+    // begin once that scene's full recorded animation has finished playing.
+    const dialogueByScene = {"1":[{"speaker":"pusheen","text":"*growls intensely , sniffing around the dark hall*\n","x":"-18px","y":"260px","fadeIn":0.4,"hold":3,"fadeOut":0.5}],"2":[{"speaker":"ghost","text":"Get out of the way of my prey!\n","x":"371px","y":"194px","fadeIn":0.4,"hold":3,"fadeOut":0.5},{"speaker":"pusheen","text":"*looks up at her with curiosity*","x":"-9px","y":"283px","fadeIn":0.4,"hold":3,"fadeOut":0.5}],"3":[{"speaker":"colombina","text":"No one is gonna haunt you no more little kitty, shall we head to a safer place?","x":"242px","y":"175px","fadeIn":0.4,"hold":3,"fadeOut":0.5},{"speaker":"pusheen","text":"*meow meow!*","x":"-18px","y":"285px","fadeIn":0.4,"hold":3,"fadeOut":0.5}]};
+
+    const ELEMENT_IDS = ['pusheen', 'ghost', 'colombina'];
+    const sortedScenes = [...scenesData].sort((a, b) => a.scene - b.scene);
+
+    function computeInitialBaseline() {
+      const baseline = {};
+      ELEMENT_IDS.forEach(id => {
+        for (const s of sortedScenes) {
+          const frames = s.act[id];
+          if (frames && frames.length) { baseline[id] = { ...frames[0] }; break; }
+        }
+        if (!baseline[id]) baseline[id] = { left: "0px", top: "0px", width: "100px", height: "100px", opacity: "0" };
+      });
+      const firstScene = sortedScenes[0];
+      ELEMENT_IDS.forEach(id => {
+        const appearsFirst = firstScene.act[id] && firstScene.act[id].length > 0;
+        if (!appearsFirst) baseline[id] = { ...baseline[id], opacity: "0" };
+      });
+      return baseline;
+    }
+
+    function buildActTimeline(act, tl, offset) {
+      let actDuration = 0;
+      ELEMENT_IDS.forEach(id => {
+        const frames = act[id];
+        if (!frames || frames.length === 0) return;
+        actDuration = Math.max(actDuration, frames.length * 0.05);
+        tl.set(`#${id}`, {
+          left: frames[0].left, top: frames[0].top,
+          width: frames[0].width, height: frames[0].height, opacity: frames[0].opacity
+        }, offset);
+        const gsapKeyframes = frames.map(state => ({
+          left: state.left, top: state.top, width: state.width, height: state.height, opacity: state.opacity,
+          duration: 0.05, ease: "none"
+        }));
+        tl.to(`#${id}`, { keyframes: gsapKeyframes }, offset);
+      });
+      return actDuration;
+    }
+
+    const initialBaseline = computeInitialBaseline();
+    ELEMENT_IDS.forEach(id => gsap.set('#' + id, initialBaseline[id]));
+
+    const bubble = document.getElementById('master-bubble');
+    const textTarget = document.getElementById('dialogue-text');
+    const sceneEl = document.querySelector('.scene-container');
+
+    let typeTween = null;
+    function fnTypewriter(text, textElement, duration, onDone) {
+      if (typeTween) typeTween.kill();
+      textElement.innerText = "";
+      const textObj = { charCount: 0 };
+      typeTween = gsap.to(textObj, {
+        charCount: text.length, duration: duration, ease: "none",
+        onUpdate: () => { textElement.innerText = text.substring(0, Math.floor(textObj.charCount)); },
+        onComplete: () => { if (onDone) onDone(); }
+      });
+    }
+
+    let sceneCursor = 0;   // index into sortedScenes
+    let stepCursor = -1;   // index into current scene's dialogue steps
+    let phase = 'ANIMATING'; // ANIMATING -> SCENE_PAUSE -> LINE_GUARD -> LINE_CLICKABLE -> TRANSITION -> (loop) -> DONE
+    let currentLineText = '';
+    let pendingTimers = []; // delayedCalls belonging to the current line, killed on manual skip
+
+    function clearPendingTimers() {
+      pendingTimers.forEach(t => t.kill());
+      pendingTimers = [];
+    }
+
+    function playCurrentSceneAnimation() {
+      phase = 'ANIMATING';
+      stepCursor = -1;
+      const sceneObj = sortedScenes[sceneCursor];
+      const tl = gsap.timeline({
+        delay: sceneCursor === 0 ? 0.8 : 0.4,
+        onComplete: () => {
+          // Buffer pause after the animation finishes so a click made right as
+          // it ends can never be mistaken for skipping the animation itself.
+          phase = 'SCENE_PAUSE';
+          const t = gsap.delayedCall(2, startSceneDialogue);
+          pendingTimers.push(t);
+        }
+      });
+      buildActTimeline(sceneObj.act, tl, 0);
+    }
+
+    function startSceneDialogue() {
+      stepCursor = 0;
+      const steps = dialogueByScene[sortedScenes[sceneCursor].scene] || [];
+      if (steps.length === 0) { goToNextScene(); return; }
+      playLine(steps[stepCursor]);
+    }
+
+    // Plays a single dialogue line automatically: fade in -> type out -> hold
+    // -> fade out on its own, then auto-advances to the next line/scene.
+    // A click anywhere fast-forwards past the hold once the guard period
+    // (3s from the line appearing) has passed.
+    function playLine(step) {
+      phase = 'LINE_GUARD';
+      clearPendingTimers();
+      currentLineText = step.text;
+
+      const fadeInDur = typeof step.fadeIn === 'number' ? step.fadeIn : 0.4;
+      const holdDur = typeof step.hold === 'number' ? step.hold : 3;
+      const fadeOutDur = typeof step.fadeOut === 'number' ? step.fadeOut : 0.5;
+
+      gsap.killTweensOf(bubble);
+      gsap.set(bubble, { left: step.x, top: step.y });
+      gsap.fromTo(bubble, { autoAlpha: 0, y: 10 }, {
+        autoAlpha: 1, y: 0, duration: fadeInDur,
+        onComplete: () => {
+          fnTypewriter(step.text, textTarget, 2.5, () => {
+            const holdTimer = gsap.delayedCall(holdDur, () => advanceLine(fadeOutDur));
+            pendingTimers.push(holdTimer);
+          });
+        }
+      });
+
+      // Guard window: ignore manual clicks for the first 3s after the line appears.
+      const guardTimer = gsap.delayedCall(3, () => {
+        if (phase === 'LINE_GUARD') phase = 'LINE_CLICKABLE';
+      });
+      pendingTimers.push(guardTimer);
+    }
+
+    function advanceLine(fadeOutDur) {
+      phase = 'TRANSITION';
+      clearPendingTimers();
+      if (typeTween) { typeTween.kill(); textTarget.innerText = currentLineText; }
+      gsap.to(bubble, { autoAlpha: 0, duration: fadeOutDur, onComplete: goToNextStepOrScene });
+    }
+
+    function goToNextStepOrScene() {
+      const steps = dialogueByScene[sortedScenes[sceneCursor].scene] || [];
+      stepCursor++;
+      if (stepCursor < steps.length) {
+        playLine(steps[stepCursor]);
+      } else {
+        goToNextScene();
+      }
+    }
+
+    function goToNextScene() {
+      sceneCursor++;
+      if (sceneCursor >= sortedScenes.length) { runOutro(); return; }
+      playCurrentSceneAnimation();
+    }
+
+    function runOutro() {
+      phase = 'DONE';
+      clearPendingTimers();
+
+      const outroTimeline = gsap.timeline();
+
+      outroTimeline
+        .to(bubble, { autoAlpha: 0, duration: 0.4 })
+        .to('#pusheen', { left: '+=200px', duration: 0.8, ease: 'power1.inOut' })
+        .to(['#colombina', '#pusheen'], {
+          opacity: 0,
+          duration: 1.5,
+          ease: 'power2.inOut'
+        }, '+=0.2')
+        .call(() => {
+          // Wait 2 seconds after the final "meow meow!" scene finishes
+          setTimeout(() => {
+            document.body.classList.add('fade-out');
+
+            // Wait for the fade to complete before changing pages
+            setTimeout(() => {
+              window.location.href = "../3_door/door.html";
+            }, 1500);
+          }, 2000);
+        });
+      }
+
+    // Click anywhere on the scene: only honored once a line has been showing
+    // for at least 3s (LINE_CLICKABLE). Clicks during the scene animation,
+    // the 2s post-animation buffer, or the first 3s of a line do nothing.
+    sceneEl.addEventListener('click', () => {
+      if (phase !== 'LINE_CLICKABLE') return;
+      advanceLine(0.3);
+    });
+
+    playCurrentSceneAnimation();
+  </script>
+  <script>
+    window.addEventListener("load", () => {
+    const transition = document.getElementById("transition");
+
+    transition.style.transition = "none";
+    transition.style.opacity = "1";
+
+    void transition.offsetHeight;
+
+    transition.style.transition = "opacity 1.5s ease-in-out"; /* ← match CSS */
+    transition.style.opacity = "0";
+    });
+  </script>
+</body>
+</html>

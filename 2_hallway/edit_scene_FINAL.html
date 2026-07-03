@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scene Animator Studio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #1a1a24; color: #fff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    
+    header { background: #111116; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2d2d3d; }
+    h1 { font-size: 1.2rem; color: #a5a5ff; }
+    
+    .studio-container { display: flex; flex: 1; overflow: hidden; }
+    
+    /* Toolbar Panel */
+    .control-panel { width: 320px; background: #181822; border-right: 2px solid #2d2d3d; padding: 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+    .panel-section { background: #222230; padding: 12px; border-radius: 6px; border: 1px solid #3d3d52; }
+    h3 { font-size: 0.9rem; margin-bottom: 10px; color: #ccc; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    /* Workspace Area */
+    .canvas-area { flex: 1; display: flex; justify-content: center; align-items: center; background: #0f0f14; padding: 20px; position: relative; }
+    
+    /* Interactive Scene */
+    #scene {
+      position: relative;
+      width: 1140px;
+      height: 500px;
+      background: url('background.png') no-repeat center/cover;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      overflow: hidden;
+    }
+    
+    /* Elements */
+    .element {
+      position: absolute;
+      cursor: move;
+      user-select: none;
+      transform-origin: center center;
+      transition: outline 0.1s;
+      outline: 1px dashed transparent;
+    }
+    .element:hover { outline: 1px dashed #4a90e2; }
+    .element.selected { outline: 2px solid #00ffcc; z-index: 100 !important; }
+    .element img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    
+    /* Resize handles */
+    .resize-handle {
+      position: absolute; width: 10px; height: 10px; background: #00ffcc;
+      bottom: -5px; right: -5px; cursor: se-resize; display: none;
+    }
+    .element.selected .resize-handle { display: block; }
+
+    /* UI Elements */
+    button {
+      background: #4e4eff; color: white; border: none; padding: 8px 12px;
+      border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 8px;
+      transition: background 0.2s;
+    }
+    button:hover { background: #6c6cff; }
+    button.secondary { background: #414158; }
+    button.secondary:hover { background: #52526e; }
+    button.success { background: #00b386; }
+    button.success:hover { background: #00cc99; }
+    button.danger { background: #ff4e4e; }
+    button.danger:hover { background: #ff6c6c; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button:disabled:hover { background: inherit; }
+    
+    .btn-group { display: flex; gap: 8px; }
+    label { display: block; font-size: 0.85rem; margin: 8px 0 4px; color: #aaa; }
+    input[type="range"] { width: 100%; margin-bottom: 5px; }
+    
+    #output-box {
+      width: 100%; height: 120px; background: #0b0b11; color: #00ff66;
+      font-family: monospace; font-size: 0.75rem; padding: 8px; border-radius: 4px;
+      border: 1px solid #222; resize: none; margin-top: 5px;
+    }
+
+    #record-indicator {
+      display: none;
+      color: #ff4e4e;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 10px;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .scene-tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+    .scene-tile {
+      width: 66px; height: 50px; border-radius: 6px; background: #2d2d3d; border: 1px solid #3d3d52;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.75rem; color: #ccc; position: relative;
+    }
+    .scene-tile.filled { background: #1f4d3d; border-color: #00b386; color: #7fffd4; }
+    .scene-tile:hover { border-color: #4a90e2; }
+    .scene-tile .clear-btn {
+      position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%;
+      background: #ff4e4e; color: #fff; font-size: 10px; line-height: 16px; text-align: center;
+      cursor: pointer; display: none;
+    }
+    .scene-tile.filled:hover .clear-btn { display: block; }
+    .scene-tile-add {
+      width: 66px; height: 50px; border-radius: 6px; border: 1px dashed #4e4eff;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1.3rem; color: #4e4eff;
+    }
+    .scene-tile-add:hover { background: #22223055; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Visual Keyframe Sequence Designer</h1>
+    <div style="font-size: 0.85rem; color: #888;">Click an item to select it | Drag to move | Drag bottom-right corner to resize</div>
+  </header>
+
+  <div class="studio-container">
+    <div class="control-panel">
+      
+      <div class="panel-section">
+        <h3>1. Selection Info</h3>
+        <div id="selection-status" style="font-size: 0.9rem; color: #ffcc00;">No asset selected</div>
+        
+        <label>Opacity (Fading)</label>
+        <input type="range" id="prop-opacity" min="0" max="1" step="0.1" value="1" disabled>
+      </div>
+
+      <div class="panel-section">
+        <h3>2. Scenes</h3>
+        <div id="scene-tiles" class="scene-tiles"></div>
+        <div style="font-size: 0.75rem; color: #aaa; line-height: 1.3; margin-top: 8px;">
+          Each tile is an independent scene slot. Click "+" to add more slots. Click a filled tile to play just that scene, or the ✕ to clear it.
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3>3. Motion Recorder</h3>
+        <button id="btn-record-toggle" class="secondary">Start Recording (Press INS)</button>
+        <div style="font-size: 0.75rem; color: #aaa; line-height: 1.3;">
+          * Press <b>INSERT</b> (or click) to start recording, then drag any character(s) around — everyone's motion is captured together. Press <b>INSERT</b> again (or click Stop) to finish, and you'll be asked which scene slot to save it into.
+        </div>
+        <div id="record-indicator">🔴 RECORDING...</div>
+      </div>
+
+      <div class="panel-section">
+        <h3>4. Timeline Controls</h3>
+        <div class="btn-group">
+          <button id="btn-play" class="success">▶ Play Scene</button>
+          <button id="btn-reset" class="secondary">↺ Reset</button>
+        </div>
+        <button id="btn-play-all" class="success">⏩ Play All Scenes</button>
+      </div>
+
+      <div class="panel-section" style="flex: 1;">
+        <h3>5. Generated Code</h3>
+        <button id="btn-export">Generate Export Script</button>
+        <textarea id="output-box" readonly placeholder="Your generated scenes CSS/JS will appear here..."></textarea>
+      </div>
+
+    </div>
+
+    <div class="canvas-area">
+      <div id="scene">
+        
+        <div class="element" id="pusheen" style="left: 360px; top: 290px; width: 80px; height: 80px; z-index: 3;">
+          <img src="pusheen1.png" alt="Pusheen">
+          <div class="resize-handle"></div>
+        </div>
+
+        <div class="element" id="colombina" style="left: 200px; top: 180px; width: 350px; height: auto; z-index: 2; opacity: 1;">
+          <img src="colombina.png" alt="Colombina">
+          <div class="resize-handle"></div>
+        </div>
+
+        <div class="element" id="ghost" style="left: 560px; top: 190px; width: 220px; height: 220px; z-index: 4;">
+          <img src="ghost.png" alt="Ghost">
+          <div class="resize-handle"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <script>
+    const ELEMENT_IDS = ['pusheen', 'ghost', 'colombina'];
+
+    let selectedElement = null;
+    const scene = document.getElementById('scene');
+
+    // --- SCENE-BASED RECORDING ---
+    // Each "scene" is an independent, standalone take: a snapshot of every
+    // element's motion over a window of time, saved into a numbered slot
+    // (Scene 1, Scene 2, Scene 3, ...). Scenes do NOT auto-chain together —
+    // you record one take, then choose which slot to save it to. "Play All"
+    // plays every filled slot back to back, in slot-number order.
+    //
+    // Shape: scenes = [ { num: 1, act: { pusheen: [frame,...], ghost: [...], colombina: [...] } }, ... ]
+    let scenes = [
+      { num: 1, act: null },
+      { num: 2, act: null },
+      { num: 3, act: null }
+    ];
+
+    function newEmptyAct() {
+      const act = {};
+      ELEMENT_IDS.forEach(id => act[id] = []);
+      return act;
+    }
+
+    let currentTake = null;
+    let isRecording = false;
+    let recordInterval = null;
+
+    // Initialize drag-and-drop & resize setup
+    document.querySelectorAll('.element').forEach(el => {
+      el.addEventListener('mousedown', function(e) {
+        if (e.target.classList.contains('resize-handle')) return;
+        
+        selectElement(el);
+        
+        let startX = e.clientX;
+        let startY = e.clientY;
+        let initialLeft = el.offsetLeft;
+        let initialTop = el.offsetTop;
+        
+        function doDrag(mEvent) {
+          el.style.left = (initialLeft + (mEvent.clientX - startX)) + 'px';
+          el.style.top = (initialTop + (mEvent.clientY - startY)) + 'px';
+        }
+        
+        function stopDrag() {
+          document.removeEventListener('mousemove', doDrag);
+          document.removeEventListener('mouseup', stopDrag);
+        }
+        
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('mouseup', stopDrag);
+      });
+
+      // Handle Resizing via mouse track
+      const handle = el.querySelector('.resize-handle');
+      handle.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+        let startWidth = el.offsetWidth;
+        let startHeight = el.offsetHeight;
+        let startX = e.clientX;
+        let startY = e.clientY;
+        
+        function doResize(mEvent) {
+          el.style.width = (startWidth + (mEvent.clientX - startX)) + 'px';
+          el.style.height = (startHeight + (mEvent.clientY - startY)) + 'px';
+        }
+        
+        function stopResize() {
+          document.removeEventListener('mousemove', doResize);
+          document.removeEventListener('mouseup', stopResize);
+        }
+        
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+      });
+    });
+
+    function selectElement(el) {
+      document.querySelectorAll('.element').forEach(item => item.classList.remove('selected'));
+      selectedElement = el;
+      el.classList.remove('animated');
+      el.classList.add('selected');
+      
+      if (!isRecording) {
+        document.getElementById('selection-status').innerText = `Selected: ${el.id.toUpperCase()}`;
+      }
+      
+      const opacityInput = document.getElementById('prop-opacity');
+      opacityInput.disabled = false;
+      opacityInput.value = el.style.opacity || 1;
+    }
+
+    // Change opacity property dynamically
+    document.getElementById('prop-opacity').addEventListener('input', function() {
+      if (selectedElement) {
+        selectedElement.style.opacity = this.value;
+      }
+    });
+
+    // --- SCENE TILE RENDERING --- //
+
+    function renderSceneTiles() {
+      const container = document.getElementById('scene-tiles');
+
+      container.innerHTML = scenes.map(s => {
+        const filled = !!s.act;
+        const dur = filled
+          ? (Math.max(...ELEMENT_IDS.map(id => s.act[id].length)) * 0.05).toFixed(1) + 's'
+          : 'empty';
+        return `
+          <div class="scene-tile ${filled ? 'filled' : ''}" data-num="${s.num}">
+            ${filled ? `<span class="clear-btn" data-clear="${s.num}">✕</span>` : ''}
+            <div>Scene ${s.num}</div>
+            <div style="font-size:0.65rem; opacity:0.8;">${dur}</div>
+          </div>`;
+      }).join('') + `<div class="scene-tile-add" id="btn-add-scene">+</div>`;
+
+      container.querySelectorAll('.scene-tile').forEach(tile => {
+        tile.addEventListener('click', () => {
+          const num = parseInt(tile.dataset.num, 10);
+          const sceneObj = scenes.find(s => s.num === num);
+          if (!sceneObj || !sceneObj.act) {
+            alert(`Scene ${num} is empty. Record a take and save it here first.`);
+            return;
+          }
+          playScene(num);
+        });
+      });
+
+      container.querySelectorAll('.clear-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const num = parseInt(btn.dataset.clear, 10);
+          const sceneObj = scenes.find(s => s.num === num);
+          if (sceneObj) {
+            sceneObj.act = null;
+            renderSceneTiles();
+          }
+        });
+      });
+
+      const addBtn = document.getElementById('btn-add-scene');
+      addBtn.addEventListener('click', () => {
+        const nextNum = scenes.length ? Math.max(...scenes.map(s => s.num)) + 1 : 1;
+        scenes.push({ num: nextNum, act: null });
+        renderSceneTiles();
+      });
+    }
+
+    // --- RECORDING LOGIC --- //
+
+    function toggleRecording() {
+      const btn = document.getElementById('btn-record-toggle');
+      const indicator = document.getElementById('record-indicator');
+
+      if (!isRecording) {
+        isRecording = true;
+        currentTake = newEmptyAct();
+
+        btn.classList.replace('secondary', 'danger');
+        btn.innerText = "Stop Recording (Press INS)";
+        indicator.style.display = "block";
+        document.getElementById('selection-status').innerHTML =
+          `<span style="color:#ff4e4e">Recording — drag any character(s)</span>`;
+
+        // Every tick, snapshot EVERY element's current style — not just the
+        // selected one — so several characters can move within the same take.
+        recordInterval = setInterval(() => {
+          ELEMENT_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            currentTake[id].push({
+              left: el.style.left,
+              top: el.style.top,
+              width: el.style.width,
+              height: el.style.height,
+              opacity: el.style.opacity || "1"
+            });
+          });
+        }, 50);
+
+      } else {
+        isRecording = false;
+        clearInterval(recordInterval);
+
+        btn.classList.replace('danger', 'secondary');
+        btn.innerText = "Start Recording (Press INS)";
+        indicator.style.display = "none";
+
+        const hasFrames = ELEMENT_IDS.some(id => currentTake[id].length > 0);
+        if (!hasFrames) {
+          document.getElementById('selection-status').innerText =
+            "Recording stopped — nothing moved, discarded.";
+          currentTake = null;
+          return;
+        }
+
+        promptSaveTake();
+      }
+    }
+
+    // After stopping a recording, ask which scene slot to save it into.
+    function promptSaveTake() {
+      const maxNum = Math.max(...scenes.map(s => s.num));
+      const emptySlot = scenes.find(s => !s.act);
+      const defaultNum = emptySlot ? emptySlot.num : (maxNum + 1);
+
+      const answer = prompt(`Save this recording to which scene? (1-${maxNum}, or a new number to add a slot)`, String(defaultNum));
+
+      if (answer === null) {
+        document.getElementById('selection-status').innerText = "Recording discarded (no scene chosen).";
+        currentTake = null;
+        return;
+      }
+
+      const num = parseInt(answer, 10);
+      if (!num || num < 1) {
+        alert("Not a valid scene number — recording discarded.");
+        currentTake = null;
+        return;
+      }
+
+      let sceneObj = scenes.find(s => s.num === num);
+      if (!sceneObj) {
+        // Fill in any gaps up to this number so the slot list stays contiguous.
+        const maxExisting = Math.max(...scenes.map(s => s.num));
+        for (let n = maxExisting + 1; n <= num; n++) {
+          scenes.push({ num: n, act: null });
+        }
+        sceneObj = scenes.find(s => s.num === num);
+      }
+
+      // Which characters actually moved in this take? A character's frames
+      // only "count" as motion if it isn't just sitting still the whole
+      // time (otherwise every take would claim ownership of every idle
+      // character and stomp on other characters' work already in this scene).
+      const movedIds = ELEMENT_IDS.filter(id => {
+        const frames = currentTake[id];
+        if (!frames || frames.length === 0) return false;
+        const first = frames[0];
+        return frames.some(f =>
+          f.left !== first.left || f.top !== first.top ||
+          f.width !== first.width || f.height !== first.height ||
+          f.opacity !== first.opacity
+        );
+      });
+
+      if (movedIds.length === 0) {
+        alert("No character actually moved in this take — nothing to save.");
+        currentTake = null;
+        return;
+      }
+
+      const overlapping = sceneObj.act ? movedIds.filter(id => {
+        const existing = sceneObj.act[id];
+        return existing && existing.length > 0;
+      }) : [];
+
+      if (overlapping.length > 0) {
+        const names = overlapping.join(', ');
+        if (!confirm(`Scene ${num} already has an animation for ${names}. Overwrite just ${names}? (Other characters already in this scene will be kept.)`)) {
+          document.getElementById('selection-status').innerText = "Recording discarded (scene not changed).";
+          currentTake = null;
+          return;
+        }
+      }
+
+      // Merge: start from whatever this scene already had, then layer this
+      // take's moved characters on top. Characters not touched this take
+      // keep their existing animation from prior saves to this scene.
+      const mergedAct = sceneObj.act ? { ...sceneObj.act } : newEmptyAct();
+      movedIds.forEach(id => {
+        mergedAct[id] = currentTake[id];
+      });
+      sceneObj.act = mergedAct;
+
+      currentTake = null;
+      scenes.sort((a, b) => a.num - b.num);
+      renderSceneTiles();
+      document.getElementById('selection-status').innerText =
+        `Saved ${movedIds.join(', ')} to Scene ${num}.`;
+    }
+
+    // Hotkey Listener
+    document.addEventListener('keydown', (e) => {
+      if (e.key === "Insert") {
+        e.preventDefault();
+        toggleRecording();
+      }
+    });
+
+    // UI Button Listeners
+    document.getElementById('btn-record-toggle').addEventListener('click', toggleRecording);
+
+    renderSceneTiles();
+
+
+    // --- PLAYBACK --- //
+    // Each scene is an independent take. Playing "everyone" is intrinsic:
+    // buildActTimeline() below adds a tween for every element that has
+    // recorded frames in that scene's act, so all characters move together,
+    // not just whichever one happened to be dragged last. Locked so a
+    // second click mid-playback can't start a competing timeline.
+    let activeTimeline = null;
+    const playBtn = document.getElementById('btn-play');
+    const playAllBtn = document.getElementById('btn-play-all');
+
+    function setPlayLock(isPlaying) {
+      playBtn.disabled = isPlaying;
+      playAllBtn.disabled = isPlaying;
+      playBtn.innerText = isPlaying ? "⏳ Playing..." : "▶ Play Scene";
+    }
+
+    // Adds tweens for every element's recorded motion in `act` onto timeline
+    // `tl`, starting at time `offset`. Snaps every element to its first
+    // recorded frame right at `offset` so each scene starts clean even when
+    // chained after another scene. Returns this act's duration in seconds.
+    function buildActTimeline(act, tl, offset) {
+      let actDuration = 0;
+
+      ELEMENT_IDS.forEach(id => {
+        const frames = act[id];
+        if (!frames || frames.length === 0) return;
+
+        actDuration = Math.max(actDuration, frames.length * 0.05);
+
+        tl.set(`#${id}`, {
+          left: frames[0].left,
+          top: frames[0].top,
+          width: frames[0].width,
+          height: frames[0].height,
+          opacity: frames[0].opacity
+        }, offset);
+
+        const gsapKeyframes = frames.map(state => ({
+          left: state.left,
+          top: state.top,
+          width: state.width,
+          height: state.height,
+          opacity: state.opacity,
+          duration: 0.05,
+          ease: "none" // Prevents weird bouncing between micro-frames
+        }));
+
+        tl.to(`#${id}`, {
+          keyframes: gsapKeyframes
+        }, offset);
+      });
+
+      return actDuration;
+    }
+
+    function playScene(num) {
+      if (isRecording) {
+        alert("Please stop recording first!");
+        return;
+      }
+      if (activeTimeline) return;
+
+      const sceneObj = scenes.find(s => s.num === num);
+      if (!sceneObj || !sceneObj.act) {
+        alert(`Scene ${num} has no recording yet.`);
+        return;
+      }
+
+      document.querySelectorAll('.element').forEach(item => item.classList.remove('selected'));
+      gsap.killTweensOf(ELEMENT_IDS.map(id => `#${id}`));
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          activeTimeline = null;
+          setPlayLock(false);
+        }
+      });
+      activeTimeline = tl;
+      setPlayLock(true);
+
+      buildActTimeline(sceneObj.act, tl, 0);
+    }
+
+    function playAllScenes() {
+      if (isRecording) {
+        alert("Please stop recording first!");
+        return;
+      }
+      if (activeTimeline) return;
+
+      const filled = scenes.filter(s => s.act).sort((a, b) => a.num - b.num);
+      if (filled.length === 0) {
+        alert("No scenes recorded yet!");
+        return;
+      }
+
+      document.querySelectorAll('.element').forEach(item => item.classList.remove('selected'));
+      gsap.killTweensOf(ELEMENT_IDS.map(id => `#${id}`));
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          activeTimeline = null;
+          setPlayLock(false);
+        }
+      });
+      activeTimeline = tl;
+      setPlayLock(true);
+
+      let offset = 0; // running start time for the next scene
+      filled.forEach(sceneObj => {
+        const dur = buildActTimeline(sceneObj.act, tl, offset);
+        offset += dur; // next scene starts right after this one fully ends
+      });
+    }
+
+    // "Play Scene" asks which scene to play
+    playBtn.addEventListener('click', () => {
+      if (isRecording) {
+        alert("Please stop recording first!");
+        return;
+      }
+      if (activeTimeline) return;
+
+      const filled = scenes.filter(s => s.act);
+      if (filled.length === 0) {
+        alert("No scenes recorded yet!");
+        return;
+      }
+
+      const maxNum = Math.max(...scenes.map(s => s.num));
+      const answer = prompt(`Play which scene? (1-${maxNum})`, String(filled[0].num));
+      if (answer === null) return;
+
+      const num = parseInt(answer, 10);
+      if (!num) {
+        alert("Not a valid scene number.");
+        return;
+      }
+      playScene(num);
+    });
+
+    // "Play All Scenes" chains every filled slot back to back, in order
+    playAllBtn.addEventListener('click', playAllScenes);
+
+    // Reset everything back to original state
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      location.reload();
+    });
+
+    // Export output code structure
+    document.getElementById('btn-export').addEventListener('click', () => {
+      const exportData = scenes.filter(s => s.act).map(s => ({ scene: s.num, act: s.act }));
+      const exportString = `// GSAP Multi-Scene Export Data\n` +
+                           `// Each entry is an independent scene/take: { scene, act }.\n` +
+                           `// act is { pusheen: [frames], ghost: [frames], colombina: [frames] }.\n` +
+                           `const scenes = ${JSON.stringify(exportData, null, 2)};\n\n` +
+                           `// Tip: for each scene, tl.set(id, act.id[0], offset) then\n` +
+                           `// tl.to(id, { keyframes: act.id }, offset) — where offset is 0 to\n` +
+                           `// play it alone, or the cumulative duration of prior scenes to chain them.`;
+      document.getElementById('output-box').value = exportString;
+    });
+  </script>
+</body>
+</html>

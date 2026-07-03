@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Scene Dialogue Sequence Studio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #09090d;
+      font-family: 'Segoe UI', sans-serif;
+      color: #e2e2e9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    h1 { margin-bottom: 5px; color: #a5a5ff; font-size: 1.8rem; }
+    p.subtitle { color: #8c8ca3; margin-bottom: 20px; font-size: 0.9rem; }
+
+    .studio-container {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+      max-width: 1600px;
+    }
+
+    .canvas-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .scene-container {
+      position: relative;
+      width: 1140px;
+      height: 500px;
+      background: url('background.png') no-repeat center/cover;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      overflow: hidden;
+      border: 2px solid #232335;
+    }
+
+    .actor { position: absolute; cursor: move; user-select: none; }
+    .actor img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+
+    /* Premium Dynamic Speech Bubble */
+    .speech-bubble {
+      position: absolute;
+      width: 340px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(16, 16, 28, 0.95) 0%, rgba(8, 8, 14, 0.98) 100%);
+      backdrop-filter: blur(12px);
+      border: 2px solid transparent;
+      border-image: linear-gradient(to bottom right, #a5a5ff, #4e4eff, rgba(15, 15, 20, 0)) 1;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 20px rgba(78, 78, 255, 0.15);
+      z-index: 100;
+      cursor: move;
+    }
+
+    .speech-bubble.active-node {
+      border-image: linear-gradient(to bottom right, #00ffaa, #00b074, rgba(15, 15, 20, 0)) 1;
+      box-shadow: 0 0 25px rgba(0, 255, 170, 0.3);
+    }
+
+    .speech-bubble-arrow {
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 16px;
+      height: 16px;
+      background: #08080e;
+      border-right: 2px solid #5757cf;
+      border-bottom: 2px solid #5757cf;
+    }
+
+    .speech-bubble.active-node .speech-bubble-arrow {
+      border-right: 2px solid #00ffaa;
+      border-bottom: 2px solid #00ffaa;
+    }
+
+    .dialogue-text {
+      font-family: 'Georgia', serif;
+      font-size: 1rem;
+      font-style: italic;
+      color: #e2e2ff;
+      line-height: 1.5;
+      letter-spacing: 0.5px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .bubble-badge {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      background: #4e4eff;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+    .speech-bubble.active-node .bubble-badge {
+      background: #00b074;
+    }
+
+    /* Multi-Timeline Control Panel */
+    .control-panel {
+      width: 420px;
+      background: #13131f;
+      border: 1px solid #232335;
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .panel-header {
+      font-size: 0.9rem;
+      color: #a5a5ff;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-bottom: 1px solid #232335;
+      padding-bottom: 5px;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-header .scene-label {
+      color: #00ffaa;
+      font-size: 0.8rem;
+    }
+
+    /* Scene selector tiles (which scene-animator take is the backdrop) */
+    .scene-tiles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+    .scene-tile {
+      flex: 1;
+      min-width: 90px;
+      padding: 10px 6px;
+      border-radius: 6px;
+      background: #1a1a2b;
+      border: 1px solid #32324d;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: #ccc;
+      transition: border-color 0.2s, background 0.2s;
+      text-align: center;
+    }
+    .scene-tile:hover { border-color: #4a90e2; }
+    .scene-tile .tile-count { font-size: 0.7rem; color: #8c8ca3; margin-top: 2px; }
+    .scene-tile.active {
+      background: #16302a;
+      border-color: #00ffaa;
+      color: #7fffd4;
+    }
+    .scene-tile.active .tile-count { color: #7fffd4; }
+
+    .btn-replay { background: #414158; color: #fff; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; width: 100%; }
+    .btn-replay:hover { background: #52526e; }
+
+    .scene-hint { font-size: 0.75rem; color: #8c8ca3; line-height: 1.35; }
+
+    .dialogue-chain { display: flex; flex-direction: column; gap: 12px; }
+
+    .dialogue-node {
+      background: #1a1a2b;
+      border: 1px solid #32324d;
+      border-radius: 6px;
+      padding: 12px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .dialogue-node.active-card {
+      border-color: #00ffaa;
+      background: #1f1f33;
+    }
+
+    .node-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
+
+    select, textarea {
+      background: #09090d;
+      border: 1px solid #32324d;
+      border-radius: 4px;
+      color: #fff;
+      padding: 8px;
+      font-family: inherit;
+    }
+
+    select { width: 130px; }
+    textarea { width: 100%; height: 60px; resize: none; }
+
+    .btn-delete { background: #ff4e4e; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-left: auto; }
+    .btn { color: white; border: none; padding: 10px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .btn-add { background: #4e4eff; width: 100%; }
+    .btn-add:hover { background: #6c6cff; }
+    .btn-export { background: #00b074; width: 100%; margin-top: 10px; font-size: 1.05rem; }
+    .btn-export:hover { background: #00c782; }
+
+    .empty-chain-hint { font-size: 0.8rem; color: #62627a; padding: 10px 0; text-align: center; }
+
+    .node-number { background: #4e4eff; color: white; font-size: 0.75rem; font-weight: bold; padding: 2px 6px; border-radius: 10px; cursor: pointer; }
+    .active-card .node-number { background: #00b074; }
+
+    .timing-row { display: flex; gap: 10px; margin-top: 4px; }
+    .timing-field { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+    .timing-field label { font-size: 0.68rem; color: #8c8ca3; text-transform: uppercase; letter-spacing: 0.4px; }
+    .timing-field input[type="number"] {
+      background: #09090d;
+      border: 1px solid #32324d;
+      border-radius: 4px;
+      color: #fff;
+      padding: 6px 8px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      width: 100%;
+    }
+    .timing-field input[type="number"]:focus { border-color: #4e4eff; outline: none; }
+  </style>
+</head>
+<body>
+
+  <h1>Multi-Scene Dialogue Sequence Studio</h1>
+  <p class="subtitle">Pick a scene-animator take below to preview it, then drag dialogue bubbles onto the canvas for that scene.</p>
+
+  <div class="studio-container">
+
+    <div class="canvas-wrapper">
+      <div class="scene-container" id="workspace-scene">
+
+        <div id="colombina" class="actor" style="left: 312px; top: 177px; width: 534px; height: 342px;">
+          <img src="colombina.png" alt="Colombina">
+        </div>
+
+        <div id="pusheen" class="actor" style="left: 114px; top: 385px; width: 110px; height: 110px;">
+          <img src="pusheen1.png" alt="Pusheen">
+        </div>
+
+        <div id="ghost" class="actor" style="left: 377px; top: 212px; width: 347px; height: 318px;">
+          <img src="ghost.png" alt="Ghost">
+        </div>
+
+      </div>
+    </div>
+
+    <div class="control-panel">
+
+      <div class="panel-header">Scenes <span class="scene-label" id="panel-scene-label">Scene 1</span></div>
+      <div id="scene-tiles" class="scene-tiles"></div>
+      <button class="btn-replay" id="btn-replay-scene">&#9654; Replay Scene Animation</button>
+      <div class="scene-hint">Each tile is an independent take exported from the scene-animator. Selecting one snaps the canvas to the moment right before that take starts, then plays it. Dialogue bubbles you place below belong only to the currently selected scene. In the exported production, a line only appears after that scene's animation finishes and you click; it fades in, holds for however long you set, then fades itself out — and you click again to bring up the next line.</div>
+
+      <div class="panel-header">Dialogue Timeline <span class="scene-label" id="panel-scene-label-2">Scene 1</span></div>
+
+      <div id="dialogue-chain-container" class="dialogue-chain"></div>
+
+      <button class="btn btn-add" id="btn-add-node">+ Add Dialogue Step to This Scene</button>
+      <button class="btn btn-export" id="btn-package">Export Production HTML</button>
+    </div>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script>
+    // --- SCENE-ANIMATOR EXPORT DATA (independent takes: pusheen/ghost/colombina keyframes) ---
+    const scenesData = [
+  {
+    "scene": 1,
+    "act": {
+      "pusheen": [
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "664px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "665px", "top": "357px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "672px", "top": "358px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "675px", "top": "359px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "659px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "656px", "top": "355px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "660px", "top": "355px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "651px", "top": "353px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "639px", "top": "357px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "649px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "642px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "641px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "625px", "top": "361px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "592px", "top": "370px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "602px", "top": "371px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "603px", "top": "371px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "580px", "top": "372px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "598px", "top": "364px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "595px", "top": "363px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "580px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "580px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "557px", "top": "363px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "525px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "527px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "528px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "504px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "498px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "475px", "top": "357px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "406px", "top": "353px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "406px", "top": "352px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "407px", "top": "352px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "407px", "top": "352px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "413px", "top": "352px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "412px", "top": "352px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "412px", "top": "352px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "435px", "top": "348px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "399px", "top": "352px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "363px", "top": "353px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "372px", "top": "353px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "378px", "top": "351px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "359px", "top": "354px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "338px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "333px", "top": "356px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "285px", "top": "359px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "282px", "top": "359px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "282px", "top": "358px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "256px", "top": "357px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "249px", "top": "357px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "248px", "top": "357px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "244px", "top": "357px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "198px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "185px", "top": "361px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "185px", "top": "361px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "164px", "top": "362px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "161px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "156px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "112px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "112px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" },
+        { "left": "111px", "top": "360px", "width": "80px", "height": "80px", "opacity": "1" }
+      ],
+      "ghost": [
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "928px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "929px", "top": "276px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "930px", "top": "275px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "932px", "top": "273px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "935px", "top": "264px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "932px", "top": "249px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "914px", "top": "229px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "893px", "top": "226px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "869px", "top": "237px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "857px", "top": "245px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "858px", "top": "248px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "869px", "top": "252px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "873px", "top": "254px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "869px", "top": "243px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "834px", "top": "218px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "787px", "top": "210px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "762px", "top": "220px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "750px", "top": "238px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "749px", "top": "254px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "755px", "top": "256px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "761px", "top": "258px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "765px", "top": "243px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "740px", "top": "222px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "717px", "top": "219px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "706px", "top": "226px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "696px", "top": "240px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "691px", "top": "255px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "692px", "top": "264px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "698px", "top": "265px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "701px", "top": "255px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "695px", "top": "235px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "661px", "top": "223px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "602px", "top": "226px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "566px", "top": "243px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "560px", "top": "253px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "567px", "top": "257px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "573px", "top": "260px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "574px", "top": "260px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "570px", "top": "239px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "554px", "top": "229px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "530px", "top": "226px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "507px", "top": "236px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "486px", "top": "249px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "481px", "top": "256px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "481px", "top": "262px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "488px", "top": "264px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "492px", "top": "264px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "491px", "top": "245px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "477px", "top": "231px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "455px", "top": "232px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "432px", "top": "250px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "416px", "top": "273px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "412px", "top": "280px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "411px", "top": "280px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "411px", "top": "280px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "411px", "top": "280px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "411px", "top": "280px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "411px", "top": "280px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "411px", "top": "280px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "411px", "top": "280px", "width": "220px", "height": "220px", "opacity": "1" }
+      ],
+      "colombina": []
+    }
+  },
+  {
+    "scene": 2,
+    "act": {
+      "pusheen": [],
+      "ghost": [
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "450px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "453px", "top": "291px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "467px", "top": "293px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "502px", "top": "293px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "510px", "top": "292px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "498px", "top": "293px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "494px", "top": "294px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "494px", "top": "294px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "488px", "top": "293px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "485px", "top": "294px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "485px", "top": "294px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "448px", "top": "306px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "464px", "top": "303px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "480px", "top": "297px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "474px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "480px", "top": "293px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "477px", "top": "292px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "471px", "top": "292px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "498px", "top": "291px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "510px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "509px", "top": "290px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "534px", "top": "292px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "561px", "top": "291px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "533px", "top": "301px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "529px", "top": "302px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "525px", "top": "302px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "522px", "top": "302px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "522px", "top": "302px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "508px", "top": "303px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "494px", "top": "302px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "490px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "473px", "top": "298px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "472px", "top": "297px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "472px", "top": "297px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "472px", "top": "297px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "468px", "top": "297px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "457px", "top": "299px", "width": "220px", "height": "220px", "opacity": "1" }
+      ],
+      "colombina": [
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.2" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.2" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.2" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.3" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.4" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.5" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.6" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.7" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.8" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "0.9" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "101px", "top": "260px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "102px", "top": "262px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "151px", "top": "269px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "171px", "top": "269px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "132px", "top": "275px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "156px", "top": "277px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "178px", "top": "268px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "127px", "top": "271px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "129px", "top": "271px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "143px", "top": "263px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "107px", "top": "264px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "148px", "top": "259px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "140px", "top": "255px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "113px", "top": "251px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "129px", "top": "244px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "93px", "top": "245px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "103px", "top": "236px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "132px", "top": "227px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "84px", "top": "238px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "111px", "top": "238px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "140px", "top": "242px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "113px", "top": "249px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "147px", "top": "241px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "145px", "top": "236px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "127px", "top": "239px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "141px", "top": "240px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "123px", "top": "251px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "131px", "top": "253px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "150px", "top": "247px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "145px", "top": "247px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "151px", "top": "243px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "144px", "top": "245px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "140px", "top": "248px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "165px", "top": "245px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "148px", "top": "251px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "126px", "top": "253px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "149px", "top": "250px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "132px", "top": "253px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "123px", "top": "250px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "123px", "top": "250px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "123px", "top": "250px", "width": "381px", "height": "236px", "opacity": "1" },
+        { "left": "123px", "top": "250px", "width": "381px", "height": "236px", "opacity": "1" }
+      ]
+    }
+  },
+  {
+    "scene": 3,
+    "act": {
+      "pusheen": [],
+      "ghost": [
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.9" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.9" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.9" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.8" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.8" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.8" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.8" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.7" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.6" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.6" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.5" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.4" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.3" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.3" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.2" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0.1" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" },
+        { "left": "466px", "top": "296px", "width": "220px", "height": "220px", "opacity": "0" }
+      ],
+      "colombina": []
+    }
+  }
+];
+
+    const ELEMENT_IDS = ['pusheen', 'ghost', 'colombina'];
+    const sortedScenes = [...scenesData].sort((a, b) => a.scene - b.scene);
+
+    // --- DIALOGUE MATRIX TIMELINE STORAGE DATA (keyed per scene number) ---
+    let dialogueByScene = {
+      1: [
+        { speaker: "pusheen", text: "*meows softly, sniffing around the dark hall*", x: "80px", y: "250px", fadeIn: 0.4, hold: 3, fadeOut: 0.5 }
+      ],
+      2: [
+        { speaker: "colombina", text: "hello little one.. such a dark place you are here but there are no ghosts to hunt you now, you're safe with me", x: "410px", y: "40px", fadeIn: 0.4, hold: 3, fadeOut: 0.5 },
+        { speaker: "pusheen", text: "*looks up at her with curiosity*", x: "80px", y: "250px", fadeIn: 0.4, hold: 3, fadeOut: 0.5 }
+      ],
+      3: [
+        { speaker: "colombina", text: "Hehe... what a good kitty. Shall we find our way home out of this cold hall?", x: "410px", y: "40px", fadeIn: 0.4, hold: 3, fadeOut: 0.5 }
+      ]
+    };
+    sortedScenes.forEach(s => { if (!dialogueByScene[s.scene]) dialogueByScene[s.scene] = []; });
+
+    let currentScene = sortedScenes[0].scene;
+    let activeStepIdx = 0;
+
+    // Builds the state every actor is in BEFORE any scene has played (elements
+    // absent from the very first scene start invisible until their first cue).
+    function computeInitialBaseline() {
+      const baseline = {};
+      ELEMENT_IDS.forEach(id => {
+        for (const s of sortedScenes) {
+          const frames = s.act[id];
+          if (frames && frames.length) { baseline[id] = { ...frames[0] }; break; }
+        }
+        if (!baseline[id]) baseline[id] = { left: "0px", top: "0px", width: "100px", height: "100px", opacity: "0" };
+      });
+      const firstScene = sortedScenes[0];
+      ELEMENT_IDS.forEach(id => {
+        const appearsFirst = firstScene.act[id] && firstScene.act[id].length > 0;
+        if (!appearsFirst) baseline[id] = { ...baseline[id], opacity: "0" };
+      });
+      return baseline;
+    }
+
+    // State of every actor right before `sceneNum` begins (i.e. after every
+    // earlier scene has finished, carrying forward whatever wasn't touched).
+    function computeBaselineBeforeScene(sceneNum) {
+      let state = computeInitialBaseline();
+      for (const s of sortedScenes) {
+        if (s.scene >= sceneNum) break;
+        ELEMENT_IDS.forEach(id => {
+          const frames = s.act[id];
+          if (frames && frames.length) state[id] = { ...frames[frames.length - 1] };
+        });
+      }
+      return state;
+    }
+
+    // Adds a keyframe tween for every element with recorded motion in `act`
+    // onto timeline `tl` at `offset`. Returns this act's duration in seconds.
+    function buildActTimeline(act, tl, offset) {
+      let actDuration = 0;
+      ELEMENT_IDS.forEach(id => {
+        const frames = act[id];
+        if (!frames || frames.length === 0) return;
+        actDuration = Math.max(actDuration, frames.length * 0.05);
+        tl.set(`#${id}`, {
+          left: frames[0].left, top: frames[0].top,
+          width: frames[0].width, height: frames[0].height, opacity: frames[0].opacity
+        }, offset);
+        const gsapKeyframes = frames.map(state => ({
+          left: state.left, top: state.top, width: state.width, height: state.height, opacity: state.opacity,
+          duration: 0.05, ease: "none"
+        }));
+        tl.to(`#${id}`, { keyframes: gsapKeyframes }, offset);
+      });
+      return actDuration;
+    }
+
+    function playScenePreview(sceneNum) {
+      gsap.killTweensOf(ELEMENT_IDS.map(id => '#' + id));
+      const baseline = computeBaselineBeforeScene(sceneNum);
+      ELEMENT_IDS.forEach(id => gsap.set('#' + id, baseline[id]));
+      const sceneObj = sortedScenes.find(s => s.scene === sceneNum);
+      const tl = gsap.timeline();
+      buildActTimeline(sceneObj.act, tl, 0);
+    }
+
+    // Custom Drag Engine System supporting dynamically generated canvas bubble instances
+    let activeElement = null;
+    let startX, startY, initialLeft, initialTop;
+
+    function initDragElement(el) {
+      el.addEventListener('mousedown', (e) => {
+        activeElement = el;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = parseFloat(el.style.left) || 0;
+        initialTop = parseFloat(el.style.top) || 0;
+
+        if (el.classList.contains('speech-bubble')) {
+          activeStepIdx = parseInt(el.dataset.idx);
+          updateSelectionHighlighting();
+        }
+        e.preventDefault();
+      });
+    }
+
+    document.querySelectorAll('.actor').forEach(initDragElement);
+
+    document.addEventListener('mousemove', (e) => {
+      if (!activeElement) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const newLeft = (initialLeft + dx) + 'px';
+      const newTop = (initialTop + dy) + 'px';
+
+      activeElement.style.left = newLeft;
+      activeElement.style.top = newTop;
+
+      if (activeElement.classList.contains('speech-bubble')) {
+        const idx = activeElement.dataset.idx;
+        dialogueByScene[currentScene][idx].x = newLeft;
+        dialogueByScene[currentScene][idx].y = newTop;
+      }
+    });
+
+    document.addEventListener('mouseup', () => { activeElement = null; });
+
+    function updateSelectionHighlighting() {
+      document.querySelectorAll('.dialogue-node').forEach((node, i) => {
+        node.classList.toggle('active-card', i === activeStepIdx);
+      });
+      document.querySelectorAll('.speech-bubble').forEach((bubble, i) => {
+        bubble.classList.toggle('active-node', i === activeStepIdx);
+      });
+    }
+
+    function renderSceneTiles() {
+      const container = document.getElementById('scene-tiles');
+      container.innerHTML = '';
+      sortedScenes.forEach(s => {
+        const tile = document.createElement('div');
+        tile.className = 'scene-tile' + (s.scene === currentScene ? ' active' : '');
+        const stepCount = (dialogueByScene[s.scene] || []).length;
+        tile.innerHTML = `Scene ${s.scene}<span class="tile-count">${stepCount} line${stepCount === 1 ? '' : 's'}</span>`;
+        tile.addEventListener('click', () => selectScene(s.scene));
+        container.appendChild(tile);
+      });
+    }
+
+    function selectScene(num) {
+      currentScene = num;
+      activeStepIdx = 0;
+      document.getElementById('panel-scene-label').innerText = 'Scene ' + num;
+      document.getElementById('panel-scene-label-2').innerText = 'Scene ' + num;
+      renderSceneTiles();
+      rebuildWorkspaceTimelineUI();
+      playScenePreview(num);
+    }
+
+    // Completely synchronizes the DOM UI state view loops
+    function rebuildWorkspaceTimelineUI() {
+      const scene = document.getElementById('workspace-scene');
+      const container = document.getElementById('dialogue-chain-container');
+      const steps = dialogueByScene[currentScene];
+
+      document.querySelectorAll('.speech-bubble').forEach(b => b.remove());
+      container.innerHTML = '';
+
+      if (steps.length === 0) {
+        container.innerHTML = '<div class="empty-chain-hint">No dialogue steps yet for this scene. Add one below.</div>';
+      }
+
+      steps.forEach((step, idx) => {
+        const bubble = document.createElement('div');
+        bubble.className = 'speech-bubble';
+        bubble.id = `bubble-step-${idx}`;
+        bubble.dataset.idx = idx;
+        bubble.style.left = step.x;
+        bubble.style.top = step.y;
+        bubble.innerHTML = `
+          <div class="bubble-badge">#${idx + 1} (${step.speaker})</div>
+          <div class="dialogue-text" id="canvas-text-${idx}">${step.text}</div>
+          <div class="speech-bubble-arrow"></div>
+        `;
+        scene.appendChild(bubble);
+        initDragElement(bubble);
+
+        const card = document.createElement('div');
+        card.className = 'dialogue-node';
+        card.innerHTML = `
+          <div class="node-row">
+            <span class="node-number" onclick="activeStepIdx=${idx}; updateSelectionHighlighting();">#${idx + 1}</span>
+            <select data-idx="${idx}" class="speaker-select">
+              <option value="colombina" ${step.speaker === 'colombina' ? 'selected' : ''}>Colombina</option>
+              <option value="pusheen" ${step.speaker === 'pusheen' ? 'selected' : ''}>Pusheen</option>
+              <option value="ghost" ${step.speaker === 'ghost' ? 'selected' : ''}>Ghost</option>
+            </select>
+            <button class="btn-delete" data-idx="${idx}">Remove</button>
+          </div>
+          <textarea data-idx="${idx}" class="text-input" placeholder="Type script message contents...">${step.text}</textarea>
+          <div class="timing-row">
+            <div class="timing-field">
+              <label>Fade In (s)</label>
+              <input type="number" step="0.1" min="0" class="fadein-input" data-idx="${idx}" value="${step.fadeIn ?? 0.4}">
+            </div>
+            <div class="timing-field">
+              <label>Hold (s)</label>
+              <input type="number" step="0.1" min="0" class="hold-input" data-idx="${idx}" value="${step.hold ?? 3}">
+            </div>
+            <div class="timing-field">
+              <label>Fade Out (s)</label>
+              <input type="number" step="0.1" min="0" class="fadeout-input" data-idx="${idx}" value="${step.fadeOut ?? 0.5}">
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      document.querySelectorAll('.speaker-select').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+          const idx = e.target.dataset.idx;
+          dialogueByScene[currentScene][idx].speaker = e.target.value;
+          rebuildWorkspaceTimelineUI();
+        });
+      });
+
+      document.querySelectorAll('.text-input').forEach(tx => {
+        tx.addEventListener('input', (e) => {
+          const idx = e.target.dataset.idx;
+          dialogueByScene[currentScene][idx].text = e.target.value;
+          document.getElementById(`canvas-text-${idx}`).innerText = e.target.value;
+        });
+        tx.addEventListener('focus', (e) => {
+          activeStepIdx = parseInt(e.target.dataset.idx);
+          updateSelectionHighlighting();
+        });
+      });
+
+      document.querySelectorAll('.fadein-input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const idx = e.target.dataset.idx;
+          dialogueByScene[currentScene][idx].fadeIn = parseFloat(e.target.value) || 0;
+        });
+        inp.addEventListener('focus', (e) => {
+          activeStepIdx = parseInt(e.target.dataset.idx);
+          updateSelectionHighlighting();
+        });
+      });
+
+      document.querySelectorAll('.hold-input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const idx = e.target.dataset.idx;
+          dialogueByScene[currentScene][idx].hold = parseFloat(e.target.value) || 0;
+        });
+        inp.addEventListener('focus', (e) => {
+          activeStepIdx = parseInt(e.target.dataset.idx);
+          updateSelectionHighlighting();
+        });
+      });
+
+      document.querySelectorAll('.fadeout-input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const idx = e.target.dataset.idx;
+          dialogueByScene[currentScene][idx].fadeOut = parseFloat(e.target.value) || 0;
+        });
+        inp.addEventListener('focus', (e) => {
+          activeStepIdx = parseInt(e.target.dataset.idx);
+          updateSelectionHighlighting();
+        });
+      });
+
+      document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          dialogueByScene[currentScene].splice(e.target.dataset.idx, 1);
+          activeStepIdx = Math.max(0, dialogueByScene[currentScene].length - 1);
+          rebuildWorkspaceTimelineUI();
+          renderSceneTiles();
+        });
+      });
+
+      updateSelectionHighlighting();
+    }
+
+    document.getElementById('btn-add-node').addEventListener('click', () => {
+      dialogueByScene[currentScene].push({ speaker: "colombina", text: "New step dialogue script...", x: "450px", y: "100px", fadeIn: 0.4, hold: 3, fadeOut: 0.5 });
+      activeStepIdx = dialogueByScene[currentScene].length - 1;
+      rebuildWorkspaceTimelineUI();
+      renderSceneTiles();
+    });
+
+    document.getElementById('btn-replay-scene').addEventListener('click', () => {
+      playScenePreview(currentScene);
+    });
+
+    // Run first layout rendering instantly
+    selectScene(currentScene);
+
+    // --- PACKAGE EXPORT SCRIPT SYSTEM ---
+    document.getElementById('btn-package').addEventListener('click', () => {
+
+      const filePackageOutput = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production Story Timeline Sequence</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f0f14; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+    .scene-container { position: relative; width: 1140px; height: 500px; background: url('background.png') no-repeat center/cover; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8); overflow: hidden; }
+    .actor { position: absolute; transform-origin: center center; }
+    .actor img { width: 100%; height: 100%; object-fit: contain; }
+
+    .speech-bubble {
+      position: absolute;
+      width: 340px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(16, 16, 28, 0.95) 0%, rgba(8, 8, 14, 0.98) 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 2px solid transparent;
+      border-image: linear-gradient(to bottom right, #a5a5ff, #4e4eff, rgba(15, 15, 20, 0)) 1;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 20px rgba(78, 78, 255, 0.15);
+      opacity: 0;
+      visibility: hidden;
+      z-index: 50;
+    }
+    .speech-bubble-arrow { position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%) rotate(45deg); width: 16px; height: 16px; background: #08080e; border-right: 2px solid #5757cf; border-bottom: 2px solid #5757cf; animation: bubbleFloat 2s ease-in-out infinite; }
+    @keyframes bubbleFloat { 0%, 100% { transform: translateX(-50%) rotate(45deg) translate(0, 0); } 50% { transform: translateX(-50%) rotate(45deg) translate(2px, 2px); } }
+    .dialogue-text { font-family: 'Georgia', serif; font-size: 1rem; font-style: italic; color: #e2e2ff; line-height: 1.5; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); word-wrap: break-word; white-space: pre-wrap; }
+
+    /* Bottom-right prompt: visible only when a line can be skipped */
+    .skip-hint {
+      position: absolute;
+      right: 18px;
+      bottom: 14px;
+      padding: 6px 10px;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.6px;
+      color: rgba(226, 226, 233, 0.95);
+      background: rgba(0, 0, 0, 0.22);
+      border: 1px solid rgba(165, 165, 255, 0.22);
+      border-radius: 999px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+      user-select: none;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+    .skip-hint.visible {
+      visibility: visible;
+      animation: skipHintPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes skipHintPulse {
+      0%, 100% { opacity: 0.22; }
+      50% { opacity: 0.62; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene-container">
+    <div id="colombina" class="actor"><img src="colombina.png" alt="Colombina"></div>
+    <div id="master-bubble" class="speech-bubble">
+      <div id="dialogue-text" class="dialogue-text"></div>
+      <div class="speech-bubble-arrow"></div>
+    </div>
+    <div id="pusheen" class="actor"><img src="pusheen1.png" alt="Pusheen"></div>
+    <div id="ghost" class="actor"><img src="ghost.png" alt="Ghost"></div>
+    <div id="skip-hint" class="skip-hint" aria-hidden="true">Click to skip</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"><\/script>
+  <script>
+    // Each entry is an independent scene-animator take.
+    const scenesData = ${JSON.stringify(sortedScenes)};
+    // Dialogue steps keyed per scene number; each scene's lines only
+    // begin once that scene's full recorded animation has finished playing.
+    const dialogueByScene = ${JSON.stringify(dialogueByScene)};
+
+    const ELEMENT_IDS = ['pusheen', 'ghost', 'colombina'];
+    const sortedScenes = [...scenesData].sort((a, b) => a.scene - b.scene);
+
+    function computeInitialBaseline() {
+      const baseline = {};
+      ELEMENT_IDS.forEach(id => {
+        for (const s of sortedScenes) {
+          const frames = s.act[id];
+          if (frames && frames.length) { baseline[id] = { ...frames[0] }; break; }
+        }
+        if (!baseline[id]) baseline[id] = { left: "0px", top: "0px", width: "100px", height: "100px", opacity: "0" };
+      });
+      const firstScene = sortedScenes[0];
+      ELEMENT_IDS.forEach(id => {
+        const appearsFirst = firstScene.act[id] && firstScene.act[id].length > 0;
+        if (!appearsFirst) baseline[id] = { ...baseline[id], opacity: "0" };
+      });
+      return baseline;
+    }
+
+    function buildActTimeline(act, tl, offset) {
+      let actDuration = 0;
+      ELEMENT_IDS.forEach(id => {
+        const frames = act[id];
+        if (!frames || frames.length === 0) return;
+        actDuration = Math.max(actDuration, frames.length * 0.05);
+        tl.set(\`#\${id}\`, {
+          left: frames[0].left, top: frames[0].top,
+          width: frames[0].width, height: frames[0].height, opacity: frames[0].opacity
+        }, offset);
+        const gsapKeyframes = frames.map(state => ({
+          left: state.left, top: state.top, width: state.width, height: state.height, opacity: state.opacity,
+          duration: 0.05, ease: "none"
+        }));
+        tl.to(\`#\${id}\`, { keyframes: gsapKeyframes }, offset);
+      });
+      return actDuration;
+    }
+
+    const initialBaseline = computeInitialBaseline();
+    ELEMENT_IDS.forEach(id => gsap.set('#' + id, initialBaseline[id]));
+
+    const bubble = document.getElementById('master-bubble');
+    const textTarget = document.getElementById('dialogue-text');
+    const sceneEl = document.querySelector('.scene-container');
+    const skipHint = document.getElementById('skip-hint');
+
+    function setSkipHintVisible(visible) {
+      if (!skipHint) return;
+      skipHint.classList.toggle('visible', !!visible);
+    }
+
+    let typeTween = null;
+    function fnTypewriter(text, textElement, duration, onDone) {
+      if (typeTween) typeTween.kill();
+      textElement.innerText = "";
+      const textObj = { charCount: 0 };
+      typeTween = gsap.to(textObj, {
+        charCount: text.length, duration: duration, ease: "none",
+        onUpdate: () => { textElement.innerText = text.substring(0, Math.floor(textObj.charCount)); },
+        onComplete: () => { if (onDone) onDone(); }
+      });
+    }
+
+    let sceneCursor = 0;   // index into sortedScenes
+    let stepCursor = -1;   // index into current scene's dialogue steps
+    let phase = 'ANIMATING'; // ANIMATING -> SCENE_PAUSE -> LINE_GUARD -> LINE_CLICKABLE -> TRANSITION -> (loop) -> DONE
+    let currentLineText = '';
+    let pendingTimers = []; // delayedCalls belonging to the current line, killed on manual skip
+
+    function clearPendingTimers() {
+      pendingTimers.forEach(t => t.kill());
+      pendingTimers = [];
+    }
+
+    function playCurrentSceneAnimation() {
+      phase = 'ANIMATING';
+      setSkipHintVisible(false);
+      stepCursor = -1;
+      const sceneObj = sortedScenes[sceneCursor];
+      const tl = gsap.timeline({
+        delay: sceneCursor === 0 ? 0.8 : 0.4,
+        onComplete: () => {
+          // Buffer pause after the animation finishes so a click made right as
+          // it ends can never be mistaken for skipping the animation itself.
+          phase = 'SCENE_PAUSE';
+          const t = gsap.delayedCall(2, startSceneDialogue);
+          pendingTimers.push(t);
+        }
+      });
+      buildActTimeline(sceneObj.act, tl, 0);
+    }
+
+    function startSceneDialogue() {
+      stepCursor = 0;
+      const steps = dialogueByScene[sortedScenes[sceneCursor].scene] || [];
+      if (steps.length === 0) { goToNextScene(); return; }
+      playLine(steps[stepCursor]);
+    }
+
+    // Plays a single dialogue line automatically: fade in -> type out -> hold
+    // -> fade out on its own, then auto-advances to the next line/scene.
+    // A click anywhere fast-forwards past the hold once the guard period
+    // (3s from the line appearing) has passed.
+    function playLine(step) {
+      phase = 'LINE_GUARD';
+      clearPendingTimers();
+      setSkipHintVisible(false);
+      currentLineText = step.text;
+
+      const fadeInDur = typeof step.fadeIn === 'number' ? step.fadeIn : 0.4;
+      const holdDur = typeof step.hold === 'number' ? step.hold : 3;
+      const fadeOutDur = typeof step.fadeOut === 'number' ? step.fadeOut : 0.5;
+
+      gsap.killTweensOf(bubble);
+      gsap.set(bubble, { left: step.x, top: step.y });
+      gsap.fromTo(bubble, { autoAlpha: 0, y: 10 }, {
+        autoAlpha: 1, y: 0, duration: fadeInDur,
+        onComplete: () => {
+          fnTypewriter(step.text, textTarget, 2.5, () => {
+            const holdTimer = gsap.delayedCall(holdDur, () => advanceLine(fadeOutDur));
+            pendingTimers.push(holdTimer);
+          });
+        }
+      });
+
+      // Guard window: ignore manual clicks for the first 3s after the line appears.
+      const guardTimer = gsap.delayedCall(3, () => {
+        if (phase === 'LINE_GUARD') {
+          phase = 'LINE_CLICKABLE';
+          setSkipHintVisible(true);
+        }
+      });
+      pendingTimers.push(guardTimer);
+    }
+
+    function advanceLine(fadeOutDur) {
+      phase = 'TRANSITION';
+      clearPendingTimers();
+      setSkipHintVisible(false);
+      if (typeTween) { typeTween.kill(); textTarget.innerText = currentLineText; }
+      gsap.to(bubble, { autoAlpha: 0, duration: fadeOutDur, onComplete: goToNextStepOrScene });
+    }
+
+    function goToNextStepOrScene() {
+      const steps = dialogueByScene[sortedScenes[sceneCursor].scene] || [];
+      stepCursor++;
+      if (stepCursor < steps.length) {
+        playLine(steps[stepCursor]);
+      } else {
+        goToNextScene();
+      }
+    }
+
+    function goToNextScene() {
+      sceneCursor++;
+      if (sceneCursor >= sortedScenes.length) { runOutro(); return; }
+      playCurrentSceneAnimation();
+    }
+
+    function runOutro() {
+      phase = 'DONE';
+      clearPendingTimers();
+      setSkipHintVisible(false);
+      const outroTimeline = gsap.timeline();
+      outroTimeline.to(bubble, { autoAlpha: 0, duration: 0.4 })
+        .to('#pusheen', { left: '+=200px', duration: 0.8, ease: 'power1.inOut' })
+        .to(['#colombina', '#pusheen'], { opacity: 0, duration: 1.5, ease: 'power2.inOut' }, '+=0.2');
+    }
+
+    // Click anywhere on the scene: only honored once a line has been showing
+    // for at least 3s (LINE_CLICKABLE). Clicks during the scene animation,
+    // the 2s post-animation buffer, or the first 3s of a line do nothing.
+    sceneEl.addEventListener('click', () => {
+      if (phase !== 'LINE_CLICKABLE') return;
+      advanceLine(0.3);
+    });
+
+    playCurrentSceneAnimation();
+  <\/script>
+</body>
+</html>`;
+
+      const blob = new Blob([filePackageOutput], { type: 'text/html' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'index.html';
+      link.click();
+    });
+  </script>
+
+</body>
+</html>

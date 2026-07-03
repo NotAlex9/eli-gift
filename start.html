@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.css">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #0b0a13;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #content-frame {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    #transition-overlay {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at center, rgba(255, 42, 133, 0.18), rgba(11, 10, 19, 0.96) 58%),
+        linear-gradient(180deg, rgba(8, 6, 16, 0.25), rgba(8, 6, 16, 0.98));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.55s ease;
+      z-index: 9998;
+    }
+
+    #transition-overlay.is-active {
+      opacity: 1;
+    }
+
+    /* Replace the existing .aplayer.aplayer-fixed styles with this */
+  /* Normal (expanded) state */
+  .aplayer.aplayer-fixed:not(.aplayer-narrow) {
+    left: auto !important;
+    right: 20px !important;
+    bottom: 20px !important;
+    z-index: 9999 !important;
+    width: 500px !important;
+    height: 80px !important;
+    margin: 0 !important;
+  }
+
+  .aplayer.aplayer-fixed:not(.aplayer-narrow) .aplayer-body {
+    left: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden;
+    border-radius: 14px !important;
+    background: var(--aplayer-bg-gradient) !important;
+    box-shadow: 0 0 28px rgba(255, 112, 174, 0.28) !important;
+  }
+
+  /* Narrow (minimized/collapsed) state — let it actually shrink */
+  .aplayer.aplayer-fixed.aplayer-narrow {
+    left: auto !important;
+    right: 20px !important;
+    bottom: 20px !important;
+    z-index: 9999 !important;
+    margin: 0 !important;
+  }
+
+
+    .aplayer.aplayer-fixed .aplayer-list {
+      border-radius: 0 0 14px 14px;
+      overflow: hidden;
+    }
+
+    .aplayer.aplayer-fixed .aplayer-info {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    .aplayer.aplayer-fixed .aplayer-info .aplayer-controller {
+      display: flex !important;
+      visibility: visible !important;
+    }
+
+    .aplayer.aplayer-fixed .aplayer-icon {
+      display: inline-block !important;
+    }
+
+    :root {
+      --aplayer-bg-gradient: linear-gradient(135deg, #ff2a85 0%, #7000ff 100%);
+      --aplayer-border: #ff75c3;
+      --aplayer-switcher: #f8f8f8;
+      --aplayer-text-primary: #ffffff;
+      --aplayer-text-secondary: #f3c1dc;
+    }
+
+    .aplayer,
+    .aplayer.aplayer-fixed .aplayer-body {
+      background: var(--aplayer-bg-gradient) !important;
+      box-shadow: 0 -5px 25px rgba(255, 112, 174, 0.4) !important;
+      backdrop-filter: blur(5px);
+    }
+
+    .aplayer.aplayer-fixed .aplayer-info {
+      border-top-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .aplayer .aplayer-miniswitcher {
+      background: var(--aplayer-switcher) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .aplayer .aplayer-info .aplayer-music .aplayer-title {
+      color: var(--aplayer-text-primary) !important;
+      font-weight: bold !important;
+      font-size: 15px !important;
+    }
+
+    .aplayer .aplayer-info .aplayer-music .aplayer-author {
+      color: var(--aplayer-text-secondary) !important;
+      font-size: 13px !important;
+    }
+
+    .aplayer .aplayer-info .aplayer-controller .aplayer-time,
+    .aplayer .aplayer-info .aplayer-controller .aplayer-time-inner,
+    .aplayer .aplayer-info .aplayer-controller .aplayer-time-inner span {
+      color: #ffffff !important;
+    }
+
+    .aplayer .aplayer-info .aplayer-controller .aplayer-time .aplayer-icon path {
+      fill: #ffffff !important;
+    }
+
+    .aplayer .aplayer-list {
+      background: #160f26 !important;
+    }
+
+    .aplayer .aplayer-list ol li {
+      border-top: 1px solid #251b3d !important;
+      color: #bfaecf !important;
+    }
+
+    .aplayer .aplayer-list ol li.aplayer-list-light {
+      background: rgba(255, 42, 133, 0.15) !important;
+    }
+
+    .aplayer .aplayer-list ol li.aplayer-list-light .aplayer-list-title {
+      color: #ff75c3 !important;
+      font-weight: bold;
+    }
+
+    @media (max-width: 640px) {
+      .aplayer.aplayer-fixed {
+        right: 12px !important;
+        bottom: 12px !important;
+        width: calc(100vw - 24px) !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <iframe id="content-frame" src="" name="content-frame"></iframe>
+  <div id="transition-overlay" aria-hidden="true"></div>
+
+  <div id="autoplay-unlock-cover" style="position: fixed; inset: 0; z-index: 99999; cursor: pointer;"></div>
+
+  <div id="aplayer-official"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.js"></script>
+
+  <script>
+    // Track current song position for syncing
+    let currentSongPosition = 0;
+    let currentSongIndex = 0;
+
+    const pages = [
+      {
+        file: "front_screen/front.html",  // FIRST PAGE - front.html as landing
+        autoplay: true,    // No music on landing
+        musicSyncing: false,
+        playlist: []        // Empty playlist - no music player
+      },
+      {
+        file: "1_entrance/entrance.html",
+        autoplay: true,
+        musicSyncing: false,  // SWITCHES to faded.mp3
+        playlist: [
+          {
+            name: "Sociopath",
+            artist: "Lucas",
+            url: "audio/piano.mp3",
+            cover: "https://picsum.photos/seed/faded/300/300",
+            volume: 1
+          }
+        ]
+      },
+      {
+        file: "2_hallway/result.html",
+        autoplay: true,
+        musicSyncing: false,  // contiounes seamlessly with same song
+        playlist: [
+          {
+            name: "Castle songs",
+            artist: "Dramatic scored",
+            url: "audio/creepy.mp3", 
+            cover: "https://picsum.photos/seed/faded/300/300",
+            volume: 0.4
+          }
+        ]
+      },
+      {
+        file: "3_door/door.html",
+        autoplay: true,
+        musicSyncing: true,  // Continues seamlessly with same song
+        playlist: [
+          {
+            name: "Castle songs",
+            artist: "Dramatic scored",
+            url: "audio/creepy2.mp3",
+            cover: "icon.jpg",
+            volume : 0.4
+          }
+        ]
+      },
+      {
+        file: "4_library/library.html",
+        autoplay: true,
+        musicSyncing: false,  // SWITCHES to dango.mp3
+        playlist: [
+          {
+            name: "Soft Fantasy",
+            artist: "Medevial",
+            url: "audio/soft-fantasy.mp3",
+            cover: "https://picsum.photos/seed/dango/300",
+            volumle: 0.3
+          }
+        ]
+      },
+      {
+        file: "5_balcony/1_balcony.html",
+        autoplay: true,
+        musicSyncing: false,  // Continues seamlessly
+        playlist: [
+          {
+            name: "Ghibli",
+            artist: "Ghibli",
+            url: "audio/ghibli.mp3",
+            cover: "https://picsum.photos/seed/dango/300/300",
+            volume: 0.4
+          }
+        ]
+      },
+      {
+        file: "5_balcony/2balcony.html",
+        autoplay: true,
+        musicSyncing: false,  // SWITCHES to faded.mp3
+        playlist: [
+          {
+             name: "Piano Dango",
+            artist: "Clannad",
+            url: "audio/sad.mp3",
+            cover: "https://picsum.photos/seed/dango/300/300",
+            volume: 0.3
+          }
+        ]
+      },
+      {
+        file: "6_resting/resting.html",
+        autoplay: true,
+        musicSyncing: true,  // Continues seamlessly
+        playlist: [
+          {
+            name: "comfort",
+            artist: "Lorenz",
+            url: "audio/sad.mp3",
+            cover: "https://picsum.photos/seed/faded/300/300",
+            volume: 0.4
+          }
+        ]
+      },
+      {
+        file: "7_meetup/meetup.html",
+        autoplay: true,
+        musicSyncing: false,  // SWITCHES to dango.mp3
+        playlist: [
+          {
+            name: "The Place Where Wishes Come True",
+            artist: "Clannad",
+            url: "audio/the-wishes.mp3",
+            cover: "https://picsum.photos/seed/dango/300/300",
+            volume: 0.4
+          }
+        ]
+      }
+    ];
+
+    const activePages = pages.filter(p => p.file.trim() !== "");
+    const frame = document.getElementById('content-frame');
+    const transitionOverlay = document.getElementById('transition-overlay');
+    const unlockCover = document.getElementById('autoplay-unlock-cover');
+
+    let ap = null;
+    let currentPageConfig = null;
+    let pendingTransition = false;
+    let pendingConfig = null;
+
+    function initPlayer(initialAudio) {
+      if (!initialAudio || initialAudio.length === 0) {
+        // No audio to play - don't initialize player
+        return;
+      }
+      
+      ap = new APlayer({
+        container: document.getElementById('aplayer-official'),
+        fixed: true,
+        mini: false,
+        theme: '#ff2a85',
+        audio: initialAudio
+      });
+
+      if (ap) {
+        setInterval(() => {
+          if (ap && ap.audio) {
+            currentSongPosition = ap.audio.currentTime || 0;
+            currentSongIndex = ap.list.index || 0;
+          }
+        }, 1000);
+      }
+    }
+
+    function unlockAndDismissCover(e) {
+      if (unlockCover && unlockCover.parentNode) {
+        unlockCover.removeEventListener('click', unlockAndDismissCover);
+        unlockCover.style.pointerEvents = 'none';
+        unlockCover.style.display = 'none';
+        unlockCover.parentNode.removeChild(unlockCover);
+      }
+
+      try {
+        if (ap) {
+          ap.play().catch(err => console.log("Autoplay blocked/failed:", err));
+        }
+      } catch (err) {
+        console.log("Player start error:", err);
+      }
+    }
+
+    if (unlockCover) {
+      unlockCover.addEventListener('click', unlockAndDismissCover);
+    }
+
+    function matchConfigToFrameURL() {
+      let framePath;
+      try {
+        framePath = frame.contentWindow.location.pathname;
+      } catch (e) {
+        return null;
+      }
+
+      const shellPath = window.location.pathname.replace(/[^/]*$/, '');
+      let relative = framePath.startsWith(shellPath)
+        ? framePath.slice(shellPath.length)
+        : framePath.split('/').pop();
+
+      relative = relative.replace(/^\.\//, '');
+      return activePages.find(p => p.file === relative) || null;
+    }
+
+    function applyPageConfig(cfg) {
+      if (!cfg) return;
+      currentPageConfig = cfg;
+
+      if (cfg.playlist && cfg.playlist.length > 0) {
+        if (!ap) {
+          // First time initialization with music
+          initPlayer(cfg.playlist);
+          if (cfg.autoplay && ap) {
+            setTimeout(() => {
+              ap.play().catch(() => {});
+            }, 100);
+          }
+          return;
+        }
+
+        if (cfg.musicSyncing) {
+          // Keep current song playing, don't change anything
+          console.log("Music syncing: Continuing with current song");
+          return;
+        }
+
+        // MUSIC SYNCING IS FALSE - SWITCH TO NEW SONG
+        console.log("Music syncing: FALSE - Switching to new song:", cfg.playlist[0].name);
+
+        const newPlaylist = cfg.playlist;
+        const currentPlaylist = ap.list.audios.map(a => a.url);
+        const newPlaylistUrls = newPlaylist.map(a => a.url);
+
+        const isDifferent = JSON.stringify(currentPlaylist) !== JSON.stringify(newPlaylistUrls);
+
+        if (isDifferent) {
+          ap.list.clear();
+          ap.list.add(newPlaylist);
+          ap.list.switch(0);
+
+          if (cfg.autoplay) {
+            ap.play().catch(() => {});
+          }
+        } else {
+          ap.list.switch(0);
+          ap.seek(0);
+          if (cfg.autoplay) {
+            ap.play().catch(() => {});
+          }
+        }
+      } else {
+        // No playlist - this is front.html (landing page)
+        // If player exists, pause it and hide it
+        if (ap) {
+          ap.pause();
+          // Hide the player for the landing page
+          const playerElement = document.getElementById('aplayer-official');
+          if (playerElement) {
+            playerElement.style.display = 'none';
+          }
+        }
+      }
+    }
+
+    // OVERRIDE: When front.html loads, hide the player
+    function checkIfFrontPage(cfg) {
+      if (cfg && cfg.file === "front.html") {
+        const playerElement = document.getElementById('aplayer-official');
+        if (playerElement) {
+          playerElement.style.display = 'none';
+        }
+        if (ap) {
+          ap.pause();
+        }
+      } else {
+        // Show player for other pages
+        const playerElement = document.getElementById('aplayer-official');
+        if (playerElement) {
+          playerElement.style.display = 'block';
+        }
+      }
+    }
+
+    function findPageConfig(fileName) {
+      return activePages.find(p => p.file === fileName) || null;
+    }
+
+    function loadPage(fileName) {
+      const cfg = findPageConfig(fileName);
+      if (!cfg) return;
+      pendingConfig = cfg;
+      frame.src = cfg.file;
+    }
+
+    function releaseTransitionOverlay() {
+      transitionOverlay.classList.remove('is-active');
+      pendingTransition = false;
+    }
+
+    function transitionToPage(fileName) {
+      const cfg = findPageConfig(fileName);
+      if (!cfg || pendingTransition) return;
+
+      if (ap && ap.audio) {
+        currentSongPosition = ap.audio.currentTime || 0;
+        currentSongIndex = ap.list.index || 0;
+      }
+
+      pendingTransition = true;
+      pendingConfig = cfg;
+      transitionOverlay.classList.add('is-active');
+
+      window.setTimeout(() => {
+        frame.src = cfg.file;
+      }, 450);
+    }
+
+    frame.addEventListener('load', () => {
+      const cfg = pendingConfig || matchConfigToFrameURL();
+      pendingConfig = null;
+
+      if (cfg) {
+        // Check if it's the front page to hide/show player
+        checkIfFrontPage(cfg);
+        applyPageConfig(cfg);
+      } else {
+        console.warn("Could not determine which page config to apply for this navigation.");
+      }
+
+      if (pendingTransition) {
+        window.setTimeout(releaseTransitionOverlay, 140);
+      }
+    });
+
+    // Start with first page (front.html)
+    if (activePages.length > 0) {
+      pendingConfig = activePages[0];
+      // Hide player initially for front.html
+      checkIfFrontPage(activePages[0]);
+      applyPageConfig(activePages[0]);
+      frame.src = activePages[0].file;
+    }
+
+    window.goToPage = loadPage;
+    window.transitionToPage = transitionToPage;
+  </script>
+</body>
+</html>
